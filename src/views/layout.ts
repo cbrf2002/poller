@@ -30,10 +30,8 @@ function nav(admin: PageOptions['admin']): SafeHtml {
   return html`<header class="site-nav">
     <nav class="nav-inner" aria-label="Main">
       <a class="wordmark" href="${admin ? '/admin' : '/'}">
-        <span class="wordmark-mark" aria-hidden="true"
-          ><span></span><span></span><span></span
-        ></span>
-        Poller
+        <span class="wordmark-mark" aria-hidden="true">P</span>
+        <span class="wordmark-word">Poller</span>
       </a>
       <div class="nav-links">
         ${
@@ -69,6 +67,13 @@ export function page(options: PageOptions): SafeHtml {
         <link
           rel="preload"
           href="/fonts/archivo-display.woff2"
+          as="font"
+          type="font/woff2"
+          crossorigin
+        />
+        <link
+          rel="preload"
+          href="/fonts/impacted.woff2"
           as="font"
           type="font/woff2"
           crossorigin

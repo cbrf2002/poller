@@ -15,11 +15,10 @@ const out = join(root, 'public', 'assets');
 const fonts = join(root, 'public', 'fonts');
 const manifestPath = join(root, 'src', 'generated', 'assets.ts');
 
+// Geist, Geist Mono, Archivo and Impacted are committed in public/fonts,
+// already subset to Latin (Impacted to the letters of POLLER): the full
+// Geist files are twice the size for scripts the UI never sets.
 const FONT_SOURCES = {
-  'geist.woff2':
-    'node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2',
-  'geist-mono.woff2':
-    'node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2',
   'instrument-serif-italic.woff2':
     'node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2',
 };

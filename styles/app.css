@@ -7,6 +7,13 @@
 /* The boot script toggles a .dark class on <html>; dark: follows it. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Logo only, subset to the letters of POLLER (about 1 KB). It is preloaded,
+   so blocking briefly beats flashing a fallback face in its place. */
+@font-face {
+  font-family: 'Impacted';
+  src: url('/fonts/impacted.woff2') format('woff2');
+  font-display: block;
+}
 @font-face {
   font-family: 'Archivo Display';
   src: url('/fonts/archivo-display.woff2') format('woff2');
@@ -45,6 +52,7 @@
   --font-accent: 'Instrument Serif', Georgia, serif;
   --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-logo: 'Impacted', 'Archivo Display', ui-sans-serif, sans-serif;
   --color-rose: #f5c0c0;
   --color-jade: #5cb198;
   --color-citrine: #cda849;
@@ -57,6 +65,7 @@
   --accent: #f5c0c0;
   --accent-deep: #d9878a;
   --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --jade: #5cb198;
   --citrine: #cda849;
   --danger: #c0505a;
@@ -78,6 +87,20 @@
   --heading-ink: linear-gradient(90deg, #31263b, #01011b);
   --noise-opacity: 0.12;
   color-scheme: light;
+}
+
+/* The boot script draws one palette per page load: [accent, light-mode ink]. */
+:root[data-palette='lavender'] {
+  --accent: #cbbcf6;
+  --accent-deep: #8f78dc;
+}
+:root[data-palette='sky'] {
+  --accent: #a9cdf5;
+  --accent-deep: #4f8fd2;
+}
+:root[data-palette='coral'] {
+  --accent: #f7b39a;
+  --accent-deep: #d0694a;
 }
 
 .dark {
@@ -201,33 +224,38 @@
     height: 64px;
     padding: 0 20px;
   }
+  /* Impacted carries only the logo: its letters are already worn, so the
+     mark is the same P set in a stamped accent block. */
   .wordmark {
-    font: 750 20px/1 var(--font-display);
-    letter-spacing: -0.04em;
+    font: 400 32px/1 var(--font-logo);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
     color: var(--text-loud);
     display: inline-flex;
     align-items: center;
     gap: 10px;
   }
   .wordmark-mark {
-    width: 22px;
-    height: 22px;
+    position: relative;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: end;
-    gap: 2px;
-  }
-  .wordmark-mark span {
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding-top: 3px;
+    font-size: 30px;
     background: var(--ink-accent);
+    color: var(--fg100);
+    transition:
+      transform 0.2s var(--ease),
+      box-shadow 0.2s var(--ease);
   }
-  .wordmark-mark span:nth-child(1) {
-    height: 45%;
+  .wordmark:hover .wordmark-mark,
+  .wordmark:focus-visible .wordmark-mark {
+    transform: rotate(-6deg) translate(-1px, -2px);
+    box-shadow: 3px 3px 0 var(--text-loud);
   }
-  .wordmark-mark span:nth-child(2) {
-    height: 100%;
-  }
-  .wordmark-mark span:nth-child(3) {
-    height: 70%;
+  .wordmark-word {
+    padding-top: 3px;
   }
   .nav-links {
     display: flex;
@@ -708,7 +736,7 @@
     cursor: pointer;
     transition:
       border-color 0.2s var(--ease),
-      background-color 0.2s var(--ease);
+      background-size 0.38s var(--ease-out);
   }
   .choice:hover {
     border-color: var(--grid700);
@@ -733,7 +761,7 @@
     height: 10px;
     background: var(--ink-accent);
     transform: scale(0);
-    transition: transform 0.15s var(--ease);
+    transition: transform 0.22s var(--ease-out);
   }
   .choice input[type='radio']::after {
     border-radius: 50%;
@@ -741,9 +769,18 @@
   .choice input:checked::after {
     transform: scale(1);
   }
+  /* Picking floods the row with ink from the left, like a stamp landing. */
+  .choice {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--accent) 14%, var(--fg100)),
+      color-mix(in srgb, var(--accent) 14%, var(--fg100))
+    );
+    background-repeat: no-repeat;
+    background-size: 0% 100%;
+  }
   .choice:has(input:checked) {
     border-color: var(--ink-accent);
-    background: color-mix(in srgb, var(--accent) 10%, var(--fg100));
+    background-size: 100% 100%;
   }
   .choice:has(input:focus-visible) {
     outline: 2px solid var(--highlight);
@@ -1086,12 +1123,176 @@
       display: none;
     }
   }
+  /* ── Motion ────────────────────────────────────────────────── */
+  /* Everything prints like ink: the logo stamps down once per visit, the
+     page title is pressed up from its baseline, results pour into their
+     bars, and a live vote makes its row jolt. All of it starts from the
+     final state's layout, so nothing shifts around it. */
+  :root[data-stamp] .wordmark-mark {
+    animation: stamp-down 0.62s var(--ease-out) both;
+  }
+  :root[data-stamp] .wordmark-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--ink-accent);
+    opacity: 0;
+    pointer-events: none;
+    animation: ink-ring 0.7s var(--ease-out) 0.3s;
+  }
+  :root[data-stamp] .wordmark-word {
+    animation: print-in 0.55s var(--ease-out) 0.32s both;
+  }
+  .display-1 {
+    animation: press-up 0.7s var(--ease-out) both;
+  }
+  .display-1 .serif {
+    animation: press-up 0.7s var(--ease-out) 0.08s both;
+  }
+  .bar rect {
+    transform-box: fill-box;
+    transform-origin: left center;
+    animation: pour 0.9s var(--ease-out) 0.15s both;
+  }
+  .bar-row:nth-child(2) .bar rect {
+    animation-delay: 0.22s;
+  }
+  .bar-row:nth-child(3) .bar rect {
+    animation-delay: 0.29s;
+  }
+  .bar-row:nth-child(4) .bar rect {
+    animation-delay: 0.36s;
+  }
+  .bar-row:nth-child(n + 5) .bar rect {
+    animation-delay: 0.43s;
+  }
+  .bar-row.bumped .bar rect {
+    animation: jolt-fill 0.9s var(--ease-out);
+  }
+  .bar-row.bumped [data-percent] {
+    display: inline-block;
+    animation: tick-up 0.45s var(--ease-out);
+  }
+  .notice {
+    animation: print-in 0.45s var(--ease-out) both;
+  }
+  /* The editor redraws its problem list on every autosave; reprinting it
+     each time would read as a new warning. */
+  [data-problems] .notice {
+    animation: none;
+  }
+  .field-error {
+    animation: nudge 0.36s var(--ease-out);
+  }
+
+  @keyframes stamp-down {
+    0% {
+      opacity: 0;
+      transform: scale(2.1) rotate(-16deg);
+      filter: blur(5px);
+    }
+    55% {
+      opacity: 1;
+      transform: scale(0.9) rotate(3deg);
+      filter: blur(0);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes ink-ring {
+    from {
+      opacity: 0.9;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(2.4) rotate(8deg);
+    }
+  }
+  @keyframes print-in {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes press-up {
+    from {
+      clip-path: inset(0 0 100% 0);
+      transform: translateY(0.4em);
+    }
+    to {
+      clip-path: inset(-0.2em -0.2em -0.3em -0.2em);
+      transform: none;
+    }
+  }
+  @keyframes pour {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes jolt-fill {
+    0% {
+      fill: var(--text-loud);
+      transform: scaleY(1.6);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes tick-up {
+    from {
+      opacity: 0;
+      transform: translateY(60%);
+    }
+  }
+  @keyframes nudge {
+    25% {
+      transform: translateX(-4px);
+    }
+    60% {
+      transform: translateX(3px);
+    }
+  }
+
+  /* Reduced motion keeps the meaning (what arrived, what changed) as fades
+     and colour, without anything travelling or scaling. */
   @media (prefers-reduced-motion: reduce) {
     .btn,
     a.win,
     .bar rect,
-    .choice input::after {
+    .choice,
+    .choice input::after,
+    .wordmark-mark {
       transition: none;
+    }
+    :root[data-stamp] .wordmark-mark,
+    :root[data-stamp] .wordmark-word,
+    .display-1,
+    .display-1 .serif,
+    .bar rect,
+    .bar-row.bumped [data-percent],
+    .notice {
+      animation: fade-in 0.4s var(--ease) both;
+    }
+    :root[data-stamp] .wordmark-mark::after,
+    .field-error {
+      animation: none;
+    }
+    .bar-row.bumped .bar rect {
+      animation: flash-fill 0.9s var(--ease);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes flash-fill {
+    from {
+      fill: var(--text-loud);
     }
   }
 }

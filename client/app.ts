@@ -82,6 +82,13 @@ function votes(n: number): string {
   return `${n} ${n === 1 ? 'vote' : 'votes'}`;
 }
 
+/** Replays the row's jolt so each new vote is felt, even back to back. */
+function bump(row: HTMLElement): void {
+  row.classList.remove('bumped');
+  void row.offsetWidth;
+  row.classList.add('bumped');
+}
+
 /** Updates bars in place; returns false when the layout no longer matches. */
 function applyResults(data: LiveResults): boolean {
   const cards = document.querySelectorAll<HTMLElement>('[data-question]');
@@ -111,6 +118,7 @@ function applyResults(data: LiveResults): boolean {
       row.classList.toggle('lead', top > 0 && choice.count === top);
       const percent = row.querySelector('[data-percent]');
       const count = row.querySelector('[data-count]');
+      if (count && count.textContent !== votes(choice.count)) bump(row);
       if (percent) percent.textContent = `${choice.percent}%`;
       if (count) count.textContent = votes(choice.count);
       row.querySelector('rect')?.setAttribute('width', String(choice.percent));
