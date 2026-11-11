@@ -120,7 +120,7 @@ export function entryPage(
               ? html`<div class="field">
                   <div data-turnstile="${siteKey}"></div>
                   <noscript><p class="field-error">Turn on JavaScript to pass the quick check before starting.</p></noscript>
-                  ${checkError ? html`<p class="field-error" role="alert">${checkError}</p>` : ''}
+                  <p class="field-error" role="alert" data-check-status ${checkError ? '' : html`hidden`}>${checkError}</p>
                 </div>`
               : ''
           }

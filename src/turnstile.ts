@@ -10,6 +10,7 @@ interface SiteverifyResult {
   success: boolean;
   action?: string;
   hostname?: string;
+  'error-codes'?: string[];
 }
 
 /**
@@ -37,8 +38,18 @@ export async function verifyTurnstile(
     const result = (await response.json()) as SiteverifyResult;
     // Cloudflare's always-pass test keys report no action; real keys must match.
     const actionOk = !result.action || result.action === TURNSTILE_ACTION;
-    return result.success === true && actionOk;
-  } catch {
+    const passed = result.success === true && actionOk;
+    // The codes tell a wrong secret (invalid-input-secret) apart from a
+    // stale, reused or forged token; they carry nothing personal.
+    if (!passed)
+      console.warn('Turnstile check failed', {
+        errorCodes: result['error-codes'] ?? [],
+        action: result.action ?? null,
+        hostname: result.hostname ?? null,
+      });
+    return passed;
+  } catch (error) {
+    console.warn('Turnstile check unreachable', String(error));
     return false;
   }
 }

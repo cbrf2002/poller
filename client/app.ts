@@ -229,11 +229,16 @@ declare global {
 
 const challenge = document.querySelector<HTMLElement>('[data-turnstile]');
 if (challenge) {
-  const submit = challenge
-    .closest('form')
-    ?.querySelector<HTMLButtonElement>('[data-needs-check]');
+  const form = challenge.closest('form');
+  const submit = form?.querySelector<HTMLButtonElement>('[data-needs-check]');
+  const status = form?.querySelector<HTMLElement>('[data-check-status]');
+  const say = (message: string) => {
+    if (!status) return;
+    status.textContent = message;
+    status.hidden = message === '';
+  };
   // The check runs invisibly unless Cloudflare wants an interaction; hold
-  // the button until a token exists so a quick tap doesn't bounce back.
+  // the button until a token exists, since posting without one always fails.
   if (submit) submit.disabled = true;
   const render = () => {
     const api = window.turnstile;
@@ -248,15 +253,24 @@ if (challenge) {
         ? 'dark'
         : 'light',
       callback: () => {
+        say('');
         if (submit) submit.disabled = false;
       },
       'expired-callback': () => {
         if (submit) submit.disabled = true;
         api.reset(id);
       },
-      'error-callback': () => {
-        // Let the server explain; a disabled button with no reason helps no one.
-        if (submit) submit.disabled = false;
+      // Interaction-only mode hides the widget's own error state, so say it
+      // here. The code is what Cloudflare's docs and support go by.
+      'error-callback': (code: string) => {
+        if (submit) submit.disabled = true;
+        say(
+          `The quick check couldn’t finish (code ${code}). Reload the page to try again.`
+        );
+        return true;
+      },
+      'unsupported-callback': () => {
+        say('This browser can’t run the quick check. Try another browser.');
       },
     });
   };
