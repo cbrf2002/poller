@@ -69,6 +69,11 @@ export abstract class Backend {
     status: SetStatus
   ): Promise<void>;
   abstract removeSet(session: string, setId: string): Promise<void>;
+  abstract removeRespondent(
+    session: string,
+    setId: string,
+    respondentId: string
+  ): Promise<void>;
   abstract adminResults(session: string, setId: string): Promise<AdminResults>;
   abstract respondentsPage(
     session: string,

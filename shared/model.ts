@@ -48,7 +48,20 @@ export interface ProfileField {
   required: boolean;
   /** Choices for `select`; empty for every other type. */
   options: string[];
+  /**
+   * Each value may be used by one respondent only (e.g. one response per
+   * email). Optional so sets saved before this existed still load.
+   */
+  unique?: boolean;
 }
+
+/** Field types whose values can identify a person, so can be kept unique. */
+export const UNIQUE_FIELD_TYPES: readonly FieldType[] = [
+  'text',
+  'email',
+  'tel',
+  'number',
+];
 
 export interface Choice {
   id: string;

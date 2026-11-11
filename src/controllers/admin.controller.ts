@@ -137,6 +137,21 @@ export class AdminController {
     res.redirect(303, '/admin');
   }
 
+  @Post('sets/:id/respondents/:respondentId/delete')
+  async removeRespondent(
+    @Param('id') id: string,
+    @Param('respondentId') respondentId: string,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    await this.backend.removeRespondent(
+      sessionOf(req).tokenHash,
+      id,
+      respondentId
+    );
+    res.redirect(303, `/admin/sets/${id}/results`);
+  }
+
   @Get('sets/:id/results')
   async results(
     @Param('id') id: string,

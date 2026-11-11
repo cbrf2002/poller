@@ -14,6 +14,7 @@ export const profileField = v.object({
   type: literals(FIELD_TYPES),
   required: v.boolean(),
   options: v.array(v.string()),
+  unique: v.optional(v.boolean()),
 });
 
 export const question = v.object({

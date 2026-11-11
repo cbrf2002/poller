@@ -39,15 +39,16 @@ Browser ──► Cloudflare Worker ──► NestJS (Express 5) ──► Conve
 
 ## Data (Convex)
 
-| Table         | Purpose                                                                 |
-| ------------- | ----------------------------------------------------------------------- |
-| `admins`      | Creator accounts: email, PBKDF2 hash, salt, iterations                  |
-| `sessions`    | Admin sign-ins by token hash, with expiry                               |
-| `sets`        | `content` (draft), `live` (public copy), `status`, `slug`, revision     |
-| `setStats`    | `entered` / `submitted` counters, apart from `sets` to avoid contention |
-| `respondents` | One per participant per set: token hash, profile values, timestamps     |
-| `responses`   | One per submission: answers                                             |
-| `tallies`     | Vote counters per question choice; choice `*` = people who answered     |
+| Table          | Purpose                                                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `admins`       | Creator accounts: email, PBKDF2 hash, salt, iterations                                                                      |
+| `sessions`     | Admin sign-ins by token hash, with expiry                                                                                   |
+| `sets`         | `content` (draft), `live` (public copy), `status`, `slug`, revision                                                         |
+| `setStats`     | `entered` / `submitted` counters, apart from `sets` to avoid contention                                                     |
+| `respondents`  | One per participant per set: token hash, profile values, timestamps                                                         |
+| `detailValues` | Comparable form of each identifying detail (text, email, phone, number), checked when a field allows one response per value |
+| `responses`    | One per submission: answers                                                                                                 |
+| `tallies`      | Vote counters per question choice; choice `*` = people who answered                                                         |
 
 Statuses: `draft` (not public) → `published` (taking answers) → `closed`
 (results only). Deleting a set schedules `sets.purge`, which removes its rows
@@ -59,3 +60,8 @@ in batches.
 - Participants: no account. Entering a set sets
   `__Host-poller_p_<code>` (60 days); its hash identifies their respondent
   row, so one browser answers once and can return to the results.
+- Repeats across browsers: a detail field can allow one response per value
+  (e.g. per email). Values are compared case- and spacing-insensitively
+  (phones by digits) and recorded for every eligible field, so turning the
+  option on later also covers earlier entries. Creators can remove a single
+  response from the results page; its votes come back out of the tallies.

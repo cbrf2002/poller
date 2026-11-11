@@ -2,7 +2,12 @@ import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 import { ConvexError, v } from 'convex/values';
 import { fingerprint } from '../shared/hash';
 import { buildResults } from '../shared/results';
-import { validateAnswers, validateProfile } from '../shared/validate';
+import {
+  comparableValue,
+  repeatedValueError,
+  validateAnswers,
+  validateProfile,
+} from '../shared/validate';
 import { components } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
@@ -118,6 +123,20 @@ export const enter = serverMutation({
     if (await findRespondent(ctx, set._id, tokenHash)) return null;
 
     const { values, errors } = validateProfile(set.live.fields, input);
+    const comparable: { fieldId: string; value: string }[] = [];
+    for (const field of set.live.fields) {
+      const value = comparableValue(field, values[field.id] ?? '');
+      if (value === null) continue;
+      comparable.push({ fieldId: field.id, value });
+      if (!field.unique || errors[field.id]) continue;
+      const taken = await ctx.db
+        .query('detailValues')
+        .withIndex('by_setId_and_fieldId_and_value', q =>
+          q.eq('setId', set._id).eq('fieldId', field.id).eq('value', value)
+        )
+        .first();
+      if (taken) errors[field.id] = repeatedValueError(field);
+    }
     if (Object.keys(errors).length)
       throw new ConvexError({ kind: 'invalid', errors });
 
@@ -130,13 +149,20 @@ export const enter = serverMutation({
         retryAfter: retryAfter ?? 0,
       });
 
-    await ctx.db.insert('respondents', {
+    const respondentId = await ctx.db.insert('respondents', {
       setId: set._id,
       tokenHash,
       profile: values,
       enteredAt: Date.now(),
       submittedAt: null,
     });
+    for (const detail of comparable) {
+      await ctx.db.insert('detailValues', {
+        setId: set._id,
+        respondentId,
+        ...detail,
+      });
+    }
     await bumpStats(ctx, set._id, 'entered');
     return null;
   },

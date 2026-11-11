@@ -369,3 +369,165 @@ describe('participation', () => {
     expect(left).toEqual({ respondents: 0, responses: 0, tallies: 0 });
   });
 });
+
+describe('repeat protection', () => {
+  async function emailOnce(t: ReturnType<typeof setup>, unique: boolean) {
+    const { admin, setId, slug } = await publishedSet(t);
+    const fields = [
+      {
+        id: 'email',
+        label: 'Email',
+        type: 'email' as const,
+        required: true,
+        options: [],
+        unique,
+      },
+    ];
+    await t.mutation(api.sets.save, {
+      secret,
+      ...admin,
+      setId,
+      content: { ...content, fields },
+    });
+    return { admin, setId, slug };
+  }
+
+  test('a unique email can answer only once, however it is typed', async () => {
+    const t = setup();
+    const { slug } = await emailOnce(t, true);
+    await t.mutation(api.participation.enter, {
+      secret,
+      slug,
+      tokenHash: 'a',
+      ipKey: 'ip',
+      input: { email: 'ana@example.com' },
+    });
+    await expect(
+      t.mutation(api.participation.enter, {
+        secret,
+        slug,
+        tokenHash: 'b',
+        ipKey: 'ip',
+        input: { email: ' Ana@Example.com ' },
+      })
+    ).rejects.toMatchObject({
+      data: {
+        kind: 'invalid',
+        errors: { email: 'Someone has already answered with this email.' },
+      },
+    });
+  });
+
+  test('repeats are allowed until the field is made unique, then blocked', async () => {
+    const t = setup();
+    const { admin, setId, slug } = await emailOnce(t, false);
+    for (const tokenHash of ['a', 'b']) {
+      await t.mutation(api.participation.enter, {
+        secret,
+        slug,
+        tokenHash,
+        ipKey: 'ip',
+        input: { email: 'ana@example.com' },
+      });
+    }
+    const set = await t.query(api.sets.get, { secret, ...admin, setId });
+    await t.mutation(api.sets.save, {
+      secret,
+      ...admin,
+      setId,
+      content: {
+        ...set.content,
+        fields: set.content.fields.map(f => ({ ...f, unique: true })),
+      },
+    });
+    await expect(
+      t.mutation(api.participation.enter, {
+        secret,
+        slug,
+        tokenHash: 'c',
+        ipKey: 'ip',
+        input: { email: 'ana@example.com' },
+      })
+    ).rejects.toMatchObject({ data: { kind: 'invalid' } });
+  });
+
+  test('removing a response takes back its votes and frees its email', async () => {
+    const t = setup();
+    const { admin, setId, slug } = await emailOnce(t, true);
+    for (const [tokenHash, food] of [
+      ['a', 'pizza'],
+      ['b', 'sushi'],
+    ] as const) {
+      await t.mutation(api.participation.enter, {
+        secret,
+        slug,
+        tokenHash,
+        ipKey: 'ip',
+        input: { email: `${tokenHash}@example.com` },
+      });
+      await t.mutation(api.participation.submit, {
+        secret,
+        slug,
+        tokenHash,
+        input: { food },
+      });
+    }
+    const people = await t.query(api.sets.respondentsPage, {
+      secret,
+      ...admin,
+      setId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    const ana = people.page.find(p => p.profile.email === 'a@example.com')!;
+    await t.mutation(api.sets.removeRespondent, {
+      secret,
+      ...admin,
+      setId,
+      respondentId: ana.id,
+    });
+
+    const after = await t.query(api.sets.results, { secret, ...admin, setId });
+    expect([after.entered, after.submitted]).toEqual([1, 1]);
+    expect(
+      after.results[0]?.choices.map(c => [c.id, c.count, c.percent])
+    ).toEqual([
+      ['pizza', 0, 0],
+      ['sushi', 1, 100],
+    ]);
+    await t.mutation(api.participation.enter, {
+      secret,
+      slug,
+      tokenHash: 'a2',
+      ipKey: 'ip',
+      input: { email: 'a@example.com' },
+    });
+  });
+
+  test('a response from another set cannot be removed through this one', async () => {
+    const t = setup();
+    const { admin, slug } = await publishedSet(t);
+    await t.mutation(api.participation.enter, {
+      secret,
+      slug,
+      tokenHash: 'a',
+      ipKey: 'ip',
+      input: { name: 'Ana' },
+    });
+    const respondentId = await t.run(
+      async ctx => (await ctx.db.query('respondents').first())!._id
+    );
+    const otherSet = await t.mutation(api.sets.create, {
+      secret,
+      ...admin,
+      title: 'Other',
+    });
+    await expect(
+      t.mutation(api.sets.removeRespondent, {
+        secret,
+        ...admin,
+        setId: otherSet,
+        respondentId,
+      })
+    ).rejects.toMatchObject({ data: { kind: 'not_found' } });
+  });
+});

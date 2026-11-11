@@ -5,6 +5,7 @@ import {
   LIMITS,
   QUESTION_TYPES,
   RATING_VALUES,
+  UNIQUE_FIELD_TYPES,
   type Answer,
   type Choice,
   type FieldType,
@@ -70,6 +71,7 @@ export function normalizeSetContent(input: unknown): SetContent {
         label: cleanText(f.label, LIMITS.label),
         type,
         required: f.required === true,
+        unique: f.unique === true && UNIQUE_FIELD_TYPES.includes(type),
         options:
           type === 'select'
             ? list(f.options, LIMITS.choices)
@@ -212,6 +214,27 @@ export function validateProfile(
     if (result.error) errors[field.id] = result.error;
   }
   return { values, errors };
+}
+
+/**
+ * The form of a detail value used to spot repeats, so "Ana@X.com " and
+ * "ana@x.com" or "+63 917-555 0101" and "639175550101" count as the same.
+ * Null for types that are never compared.
+ */
+export function comparableValue(
+  field: ProfileField,
+  value: string
+): string | null {
+  if (!UNIQUE_FIELD_TYPES.includes(field.type) || !value) return null;
+  if (field.type === 'tel') return value.replace(/\D/g, '') || null;
+  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/** Message for a detail that another respondent already used. */
+export function repeatedValueError(field: ProfileField): string {
+  return field.type === 'email'
+    ? 'Someone has already answered with this email.'
+    : `Someone has already answered with this ${field.label.toLowerCase() || 'value'}.`;
 }
 
 function asList(value: unknown): string[] {

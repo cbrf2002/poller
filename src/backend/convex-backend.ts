@@ -104,6 +104,13 @@ export class ConvexBackend extends Backend {
       status,
     });
   }
+  async removeRespondent(session: string, setId: string, respondentId: string) {
+    await this.mutation(api.sets.removeRespondent, {
+      ...this.admin(session),
+      setId,
+      respondentId,
+    });
+  }
   async removeSet(session: string, setId: string) {
     await this.mutation(api.sets.remove, { ...this.admin(session), setId });
   }

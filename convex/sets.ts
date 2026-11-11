@@ -165,34 +165,102 @@ export const purge = internalMutation({
   args: { setId: v.id('sets') },
   handler: async (ctx, { setId }) => {
     const batch = 200;
-    const [stats, respondents, responses, tallies] = await Promise.all([
-      ctx.db
-        .query('setStats')
-        .withIndex('by_setId', q => q.eq('setId', setId))
-        .take(batch),
-      ctx.db
-        .query('respondents')
-        .withIndex('by_setId_and_enteredAt', q => q.eq('setId', setId))
-        .take(batch),
-      ctx.db
-        .query('responses')
-        .withIndex('by_setId', q => q.eq('setId', setId))
-        .take(batch),
-      ctx.db
-        .query('tallies')
-        .withIndex('by_setId_and_questionId_and_optionId', q =>
-          q.eq('setId', setId)
-        )
-        .take(batch),
-    ]);
+    const [stats, respondents, responses, tallies, details] = await Promise.all(
+      [
+        ctx.db
+          .query('setStats')
+          .withIndex('by_setId', q => q.eq('setId', setId))
+          .take(batch),
+        ctx.db
+          .query('respondents')
+          .withIndex('by_setId_and_enteredAt', q => q.eq('setId', setId))
+          .take(batch),
+        ctx.db
+          .query('responses')
+          .withIndex('by_setId', q => q.eq('setId', setId))
+          .take(batch),
+        ctx.db
+          .query('tallies')
+          .withIndex('by_setId_and_questionId_and_optionId', q =>
+            q.eq('setId', setId)
+          )
+          .take(batch),
+        ctx.db
+          .query('detailValues')
+          .withIndex('by_setId_and_fieldId_and_value', q =>
+            q.eq('setId', setId)
+          )
+          .take(batch),
+      ]
+    );
     for (const row of stats) await ctx.db.delete('setStats', row._id);
     for (const row of respondents) await ctx.db.delete('respondents', row._id);
     for (const row of responses) await ctx.db.delete('responses', row._id);
     for (const row of tallies) await ctx.db.delete('tallies', row._id);
-    const more = [stats, respondents, responses, tallies].some(
+    for (const row of details) await ctx.db.delete('detailValues', row._id);
+    const more = [stats, respondents, responses, tallies, details].some(
       rows => rows.length === batch
     );
     if (more) await ctx.scheduler.runAfter(0, internal.sets.purge, { setId });
+    return null;
+  },
+});
+
+/**
+ * Removes one respondent (a test entry, a duplicate): their details, their
+ * answers and the votes those answers added. Their browser can join again.
+ */
+export const removeRespondent = serverMutation({
+  args: { ...adminArgs, setId: v.string(), respondentId: v.string() },
+  handler: async (ctx, { session, now, setId, respondentId }) => {
+    const admin = await requireAdmin(ctx, session, now);
+    const set = await requireOwnedSet(ctx, admin._id, setId);
+    const id = ctx.db.normalizeId('respondents', respondentId);
+    const respondent = id ? await ctx.db.get('respondents', id) : null;
+    if (!respondent || respondent.setId !== set._id) {
+      throw new ConvexError({ kind: 'not_found' });
+    }
+
+    const response = await ctx.db
+      .query('responses')
+      .withIndex('by_respondentId', q => q.eq('respondentId', respondent._id))
+      .first();
+    for (const answer of response?.answers ?? []) {
+      for (const optionId of ['*', ...answer.optionIds]) {
+        const tally = await ctx.db
+          .query('tallies')
+          .withIndex('by_setId_and_questionId_and_optionId', q =>
+            q
+              .eq('setId', set._id)
+              .eq('questionId', answer.questionId)
+              .eq('optionId', optionId)
+          )
+          .unique();
+        if (!tally) continue;
+        if (tally.count <= 1) await ctx.db.delete('tallies', tally._id);
+        else
+          await ctx.db.patch('tallies', tally._id, { count: tally.count - 1 });
+      }
+    }
+    if (response) await ctx.db.delete('responses', response._id);
+
+    const details = await ctx.db
+      .query('detailValues')
+      .withIndex('by_respondentId', q => q.eq('respondentId', respondent._id))
+      .take(50);
+    for (const row of details) await ctx.db.delete('detailValues', row._id);
+
+    const stats = await statsFor(ctx, set._id);
+    if (stats) {
+      await ctx.db.patch('setStats', stats._id, {
+        entered: Math.max(0, stats.entered - 1),
+        submitted: Math.max(
+          0,
+          stats.submitted - (respondent.submittedAt === null ? 0 : 1)
+        ),
+      });
+    }
+    await ctx.db.delete('respondents', respondent._id);
     return null;
   },
 });

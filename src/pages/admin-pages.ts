@@ -347,6 +347,7 @@ export function adminResultsPage(
                         <th>Joined</th>
                         ${data.fields.map(f => html`<th>${f.label}</th>`)}
                         ${data.questions.map((q, i) => html`<th title="${q.prompt}">Q${i + 1}</th>`)}
+                        <th><span class="sr-only">Remove</span></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -365,6 +366,13 @@ export function adminResultsPage(
                               ${a ? (q.type === 'text' ? a.text : labelFor(q.id, a.optionIds)) : '—'}
                             </td>`;
                           })}
+                          <td class="!min-w-0">
+                            <form method="post" action="/admin/sets/${data.id}/respondents/${r.id}/delete"
+                              data-confirm="Remove this response? Their answers come out of the results and they can join again. This can't be undone.">
+                              <button class="tool-btn danger" type="submit" title="Remove response"
+                                aria-label="Remove the response from ${when(r.enteredAt)}">✕</button>
+                            </form>
+                          </td>
                         </tr>`;
                       })}
                     </tbody>

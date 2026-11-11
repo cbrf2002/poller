@@ -5,6 +5,7 @@ import {
   LIMITS,
   QUESTION_TYPE_NAMES,
   QUESTION_TYPES,
+  UNIQUE_FIELD_TYPES,
   type FieldType,
   type ProfileField,
   type Question,
@@ -217,7 +218,8 @@ function startEditor(set: SetData, root: HTMLElement): void {
     );
   }
 
-  function requiredToggle(
+  function checkToggle(
+    label: string,
     value: boolean,
     onChange: (v: boolean) => void
   ): HTMLElement {
@@ -232,7 +234,7 @@ function startEditor(set: SetData, root: HTMLElement): void {
           scheduleSave(200);
         },
       }),
-      'Required'
+      label
     );
   }
 
@@ -418,7 +420,18 @@ function startEditor(set: SetData, root: HTMLElement): void {
             )
           )
         : null,
-      requiredToggle(field.required, v => (field.required = v))
+      h(
+        'div',
+        { class: 'flex flex-wrap gap-x-6' },
+        checkToggle('Required', field.required, v => (field.required = v)),
+        UNIQUE_FIELD_TYPES.includes(field.type)
+          ? checkToggle(
+              'One response per value',
+              field.unique === true,
+              v => (field.unique = v)
+            )
+          : null
+      )
     );
   }
 
@@ -573,7 +586,7 @@ function startEditor(set: SetData, root: HTMLElement): void {
       question.type === 'single' || question.type === 'multiple'
         ? choiceRows(question)
         : null,
-      requiredToggle(question.required, v => (question.required = v))
+      checkToggle('Required', question.required, v => (question.required = v))
     );
   }
 

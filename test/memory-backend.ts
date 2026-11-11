@@ -75,6 +75,7 @@ export class MemoryBackend extends Backend {
   saveSet = (): never => this.notInTests();
   changeStatus = (): never => this.notInTests();
   removeSet = (): never => this.notInTests();
+  removeRespondent = (): never => this.notInTests();
   adminResults = (): never => this.notInTests();
   respondentsPage = (): never => this.notInTests();
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import type { ProfileField, Question } from '../shared/model';
 import { buildResults } from '../shared/results';
 import {
+  comparableValue,
   normalizeSetContent,
   publishProblems,
   validateAnswers,
@@ -219,4 +220,32 @@ describe('buildResults', () => {
     expect(result!.average).toBe(4);
     expect(result!.choices).toHaveLength(5);
   });
+});
+
+describe('comparableValue', () => {
+  test('phone numbers compare by their digits', () => {
+    const phone = field('tel');
+    expect(comparableValue(phone, '+63 917-555 0101')).toBe(
+      comparableValue(phone, '639175550101')
+    );
+  });
+
+  test('names ignore case and spacing', () => {
+    expect(comparableValue(field('text'), '  Ana   Cruz ')).toBe('ana cruz');
+  });
+
+  test('dates and dropdowns are never compared', () => {
+    expect(comparableValue(field('date'), '2000-01-01')).toBeNull();
+    expect(comparableValue(field('select'), 'Red')).toBeNull();
+  });
+});
+
+test('only identifying field types keep the one-response option', () => {
+  const content = normalizeSetContent({
+    fields: [
+      { id: 'a', type: 'email', unique: true },
+      { id: 'b', type: 'date', unique: true },
+    ],
+  });
+  expect(content.fields.map(f => f.unique)).toEqual([true, false]);
 });

@@ -51,6 +51,20 @@ export default defineSchema({
     .index('by_setId_and_tokenHash', ['setId', 'tokenHash'])
     .index('by_setId_and_enteredAt', ['setId', 'enteredAt']),
 
+  /**
+   * Comparable forms of each respondent's identifying details (see
+   * `comparableValue`), recorded for every eligible field so a field can be
+   * made unique after people have already joined.
+   */
+  detailValues: defineTable({
+    setId: v.id('sets'),
+    fieldId: v.string(),
+    value: v.string(),
+    respondentId: v.id('respondents'),
+  })
+    .index('by_setId_and_fieldId_and_value', ['setId', 'fieldId', 'value'])
+    .index('by_respondentId', ['respondentId']),
+
   responses: defineTable({
     setId: v.id('sets'),
     respondentId: v.id('respondents'),
