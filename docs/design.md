@@ -1,7 +1,6 @@
 # Design
 
-Poller uses the same design language as the cbrf2002 portfolio: an
-engineering notebook on warm paper.
+Poller looks like an engineering notebook on warm paper.
 
 - **Canvas**: obsidian `#14141c` (dark, default) or rose-white `#fffcfc`
   (light), paper-grain noise over everything, hairline borders, crop-mark
