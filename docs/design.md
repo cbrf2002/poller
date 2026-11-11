@@ -7,9 +7,9 @@ Poller looks like an engineering notebook on warm paper.
   ticks at section corners.
 - **Shape**: square corners everywhere. Buttons are solid accent blocks with a
   4 px hard shadow that lift on hover and press flat.
-- **Logo**: POLLER set in Impacted (Harrison Reilly, free font), with its
-  worn P in a solid accent block as the mark and the favicon. The font file
-  holds only those letters.
+- **Logo**: POLLER set in Impacted (Harrison Reilly, free font). The nav shows
+  the word alone; its worn P, rose on obsidian, is the favicon and the
+  home-screen icon. The font file holds only those letters.
 - **Type**: Archivo (display 750 / heading 700), Instrument Serif italic for
   the emotional half of a headline, Geist for body, Geist Mono for uppercase
   labels.
@@ -35,7 +35,7 @@ Poller looks like an engineering notebook on warm paper.
 
 ## Motion
 
-Everything moves like ink. The logo stamps down once per visit, page titles
+Everything moves like ink. The logo stamps down with an ink ring once per visit, page titles
 press up from their baseline, picking a choice floods the row from the left,
 results pour into their bars, a live vote jolts its row, and notices print
 in. Reduced motion swaps all of it for fades and colour flashes.

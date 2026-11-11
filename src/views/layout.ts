@@ -30,7 +30,6 @@ function nav(admin: PageOptions['admin']): SafeHtml {
   return html`<header class="site-nav">
     <nav class="nav-inner" aria-label="Main">
       <a class="wordmark" href="${admin ? '/admin' : '/'}">
-        <span class="wordmark-mark" aria-hidden="true">P</span>
         <span class="wordmark-word">Poller</span>
       </a>
       <div class="nav-links">
@@ -64,6 +63,8 @@ export function page(options: PageOptions): SafeHtml {
         <meta name="theme-color" content="#14141c" />
         <meta name="color-scheme" content="dark light" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <link
           rel="preload"
           href="/fonts/archivo-display.woff2"

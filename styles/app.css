@@ -224,8 +224,8 @@
     height: 64px;
     padding: 0 20px;
   }
-  /* Impacted carries only the logo: its letters are already worn, so the
-     mark is the same P set in a stamped accent block. */
+  /* Impacted carries only the logo; its letters are already worn. The P on
+     its own is kept for the favicon and home-screen icons. */
   .wordmark {
     font: 400 32px/1 var(--font-logo);
     text-transform: uppercase;
@@ -233,29 +233,19 @@
     color: var(--text-loud);
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-  }
-  .wordmark-mark {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    padding-top: 3px;
-    font-size: 30px;
-    background: var(--ink-accent);
-    color: var(--fg100);
-    transition:
-      transform 0.2s var(--ease),
-      box-shadow 0.2s var(--ease);
-  }
-  .wordmark:hover .wordmark-mark,
-  .wordmark:focus-visible .wordmark-mark {
-    transform: rotate(-6deg) translate(-1px, -2px);
-    box-shadow: 3px 3px 0 var(--text-loud);
   }
   .wordmark-word {
+    position: relative;
+    display: inline-block;
     padding-top: 3px;
+    transition:
+      transform 0.2s var(--ease),
+      color 0.2s var(--ease);
+  }
+  .wordmark:hover .wordmark-word,
+  .wordmark:focus-visible .wordmark-word {
+    transform: rotate(-3deg) translateY(-1px);
+    color: var(--ink-accent);
   }
   .nav-links {
     display: flex;
@@ -1128,20 +1118,17 @@
      page title is pressed up from its baseline, results pour into their
      bars, and a live vote makes its row jolt. All of it starts from the
      final state's layout, so nothing shifts around it. */
-  :root[data-stamp] .wordmark-mark {
+  :root[data-stamp] .wordmark-word {
     animation: stamp-down 0.62s var(--ease-out) both;
   }
-  :root[data-stamp] .wordmark-mark::after {
+  :root[data-stamp] .wordmark-word::after {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -2px -6px;
     border: 2px solid var(--ink-accent);
     opacity: 0;
     pointer-events: none;
     animation: ink-ring 0.7s var(--ease-out) 0.3s;
-  }
-  :root[data-stamp] .wordmark-word {
-    animation: print-in 0.55s var(--ease-out) 0.32s both;
   }
   .display-1 {
     animation: press-up 0.7s var(--ease-out) both;
@@ -1265,10 +1252,9 @@
     .bar rect,
     .choice,
     .choice input::after,
-    .wordmark-mark {
+    .wordmark-word {
       transition: none;
     }
-    :root[data-stamp] .wordmark-mark,
     :root[data-stamp] .wordmark-word,
     .display-1,
     .display-1 .serif,
@@ -1277,7 +1263,7 @@
     .notice {
       animation: fade-in 0.4s var(--ease) both;
     }
-    :root[data-stamp] .wordmark-mark::after,
+    :root[data-stamp] .wordmark-word::after,
     .field-error {
       animation: none;
     }
