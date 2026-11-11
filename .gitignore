@@ -11,11 +11,11 @@ src/generated/
 .dev-admin.local
 .prod-secret.local
 
-# Local agent tooling (same as the portfolio)
+# Local agent tooling
 /.agents/
 /.claude/
 
-# Agent context files stay local (same as the portfolio)
+# Agent context files stay local
 AGENTS.md
 CLAUDE.md
 skills-lock.json
