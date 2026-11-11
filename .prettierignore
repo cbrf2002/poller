@@ -1,0 +1,12 @@
+node_modules
+dist
+.wrangler
+public/assets
+convex/_generated
+src/generated
+pnpm-lock.yaml
+.agents
+.claude
+skills-lock.json
+AGENTS.md
+CLAUDE.md

@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "poller",
+  // The Cbrf2002 account from the Workers dashboard.
+  "account_id": "0244ba649f5ec7f7bf314cb4d433f37a",
+  "main": "src/worker.ts",
+  // Node.js HTTP server support (handleAsNodeRequest) needs nodejs_compat and
+  // a compatibility date from 2025-09 on.
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "minify": true,
+  "upload_source_maps": true,
+  "observability": { "enabled": true },
+  "vars": {
+    // Production Convex deployment. `.dev.vars` points local dev elsewhere.
+    "CONVEX_URL": "https://quaint-manatee-122.convex.cloud",
+  },
+  // POLLER_SERVER_SECRET is a secret: `wrangler secret put POLLER_SERVER_SECRET`.
+  "alias": {
+    // Optional NestJS packages this app never loads; Nest probes for them.
+    "@nestjs/websockets/socket-module.js": "./src/platform/absent-module.ts",
+    "@nestjs/microservices/microservices-module.js": "./src/platform/absent-module.ts",
+    "@nestjs/microservices": "./src/platform/absent-module.ts",
+    "class-transformer": "./src/platform/absent-module.ts",
+    "class-validator": "./src/platform/absent-module.ts",
+  },
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+}

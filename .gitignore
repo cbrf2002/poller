@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.wrangler/
+coverage/
+public/assets/
+src/generated/
+.env.local
+.env*.local
+.dev.vars
+*.log
+.dev-admin.local
+.prod-secret.local
+
+# Local agent tooling (same as the portfolio)
+/.agents/
+/.claude/
+
+# Agent context files stay local (same as the portfolio)
+AGENTS.md
+CLAUDE.md
+skills-lock.json
+convex/_generated/ai/
