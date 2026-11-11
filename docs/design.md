@@ -11,8 +11,8 @@ Poller looks like an engineering notebook on warm paper.
   the word alone; its worn P, rose on obsidian, is the favicon and the
   home-screen icon. The font file holds only those letters.
 - **Type**: Archivo (display 750 / heading 700), Instrument Serif italic for
-  the emotional half of a headline, Geist for body, Geist Mono for uppercase
-  labels.
+  the emotional half of a headline, Bricolage Grotesque for body, Martian
+  Mono for uppercase labels and figures.
 - **Colour**: every page load draws one accent palette (rose, lavender, sky
   or coral, each with a darker ink for light mode). Rose quartz `#f5c0c0`
   is the default. Jade means live/success, citrine means closed/warning. Neutrals are

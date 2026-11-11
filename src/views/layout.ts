@@ -81,7 +81,7 @@ export function page(options: PageOptions): SafeHtml {
         />
         <link
           rel="preload"
-          href="/fonts/geist.woff2"
+          href="/fonts/bricolage-grotesque.woff2"
           as="font"
           type="font/woff2"
           crossorigin

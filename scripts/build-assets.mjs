@@ -15,10 +15,14 @@ const out = join(root, 'public', 'assets');
 const fonts = join(root, 'public', 'fonts');
 const manifestPath = join(root, 'src', 'generated', 'assets.ts');
 
-// Geist, Geist Mono, Archivo and Impacted are committed in public/fonts,
-// already subset to Latin (Impacted to the letters of POLLER): the full
-// Geist files are twice the size for scripts the UI never sets.
+// Archivo and Impacted are committed in public/fonts, already subset
+// (Impacted to the letters of POLLER). The rest are Fontsource's Latin
+// weight-axis files: the other axes and scripts would double the bytes.
 const FONT_SOURCES = {
+  'bricolage-grotesque.woff2':
+    'node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2',
+  'martian-mono.woff2':
+    'node_modules/@fontsource-variable/martian-mono/files/martian-mono-latin-wght-normal.woff2',
   'instrument-serif-italic.woff2':
     'node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2',
 };
