@@ -14,8 +14,11 @@
   "vars": {
     // Production Convex deployment. `.dev.vars` points local dev elsewhere.
     "CONVEX_URL": "https://quaint-manatee-122.convex.cloud",
+    // Turnstile widget "poller" (public). Its secret is TURNSTILE_SECRET_KEY.
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAF8iYYyvI_FVB1Gz",
   },
-  // POLLER_SERVER_SECRET is a secret: `wrangler secret put POLLER_SERVER_SECRET`.
+  // Secrets: POLLER_SERVER_SECRET and TURNSTILE_SECRET_KEY
+  // (`wrangler secret put <NAME>`).
   "alias": {
     // Optional NestJS packages this app never loads; Nest probes for them.
     "@nestjs/websockets/socket-module.js": "./src/platform/absent-module.ts",

@@ -5,21 +5,36 @@ import type { NextFunction, Request, Response } from 'express';
  * under /assets. The client builds DOM nodes rather than HTML strings, so
  * Trusted Types can be required outright.
  */
-export const CONTENT_SECURITY_POLICY = [
-  "default-src 'none'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' data:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "manifest-src 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'none'",
-  "require-trusted-types-for 'script'",
-  "trusted-types 'none'",
-  'upgrade-insecure-requests',
-].join('; ');
+function contentSecurityPolicy(challengeOrigin?: string): string {
+  return [
+    "default-src 'none'",
+    challengeOrigin
+      ? `script-src 'self' ${challengeOrigin}`
+      : "script-src 'self'",
+    ...(challengeOrigin ? [`frame-src ${challengeOrigin}`] : []),
+    "style-src 'self'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "manifest-src 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    "require-trusted-types-for 'script'",
+    "trusted-types 'none'",
+    'upgrade-insecure-requests',
+  ].join('; ');
+}
+
+export const CONTENT_SECURITY_POLICY = contentSecurityPolicy();
+
+/**
+ * Widens the policy for one response so Cloudflare Turnstile's script and
+ * challenge iframe can load. Only pages that show the widget call this.
+ */
+export function allowChallengeOrigin(res: Response, origin: string): void {
+  res.setHeader('Content-Security-Policy', contentSecurityPolicy(origin));
+}
 
 export const SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': CONTENT_SECURITY_POLICY,

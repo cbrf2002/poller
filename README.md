@@ -28,8 +28,9 @@ with the code, answer, and then watch the results come in live.
 - See how everyone voted right after answering, with your own picks marked.
 - Works on phones, in light and dark themes.
 
-**Repeat protection**
+**Repeat and bot protection**
 
+- Cloudflare Turnstile checks people before they join, usually invisibly.
 - One submission per browser.
 - Optionally, one response per email, name, phone or number: values are
   compared regardless of case, spacing or phone formatting.
@@ -79,6 +80,9 @@ pnpm exec convex env set POLLER_SERVER_SECRET <secret>
 # .dev.vars
 CONVEX_URL=https://<your-dev-deployment>.convex.cloud
 POLLER_SERVER_SECRET=<secret>
+# Optional: Cloudflare's always-pass Turnstile test keys
+TURNSTILE_SITE_KEY=1x00000000000000000000AA
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 ```
 
 Then create a host account and start the app on http://localhost:8787:
@@ -90,12 +94,15 @@ pnpm dev
 
 ### Deploying
 
-In `wrangler.jsonc`, replace `account_id` and `CONVEX_URL` with your own
-Cloudflare account and Convex production URL. Then, once:
+In `wrangler.jsonc`, replace `account_id`, `CONVEX_URL` and
+`TURNSTILE_SITE_KEY` with your own Cloudflare account, Convex production
+URL and [Turnstile](https://developers.cloudflare.com/turnstile/) widget site
+key (or remove `TURNSTILE_SITE_KEY` to run without the check). Then, once:
 
 ```bash
 pnpm exec convex env set --prod POLLER_SERVER_SECRET <secret>
 pnpm exec wrangler secret put POLLER_SERVER_SECRET    # same secret
+pnpm exec wrangler secret put TURNSTILE_SECRET_KEY    # the widget's secret key
 pnpm admin:create --prod
 ```
 

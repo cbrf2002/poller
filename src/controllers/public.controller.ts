@@ -14,12 +14,14 @@ import { Backend, BackendError, type PublicSet } from '../backend/backend';
 import { APP_CONFIG, type AppConfig } from '../config';
 import { randomToken, sha256 } from '../crypto';
 import { cookieName, readCookie, serializeCookie } from '../http/cookies';
-import { prefixedInput } from '../http/forms';
-import { clientIp } from '../http/security';
+import { bodyString, prefixedInput } from '../http/forms';
+import { allowChallengeOrigin, clientIp } from '../http/security';
+import { TURNSTILE_ORIGIN, verifyTurnstile } from '../turnstile';
 import { sendPage } from '../http/respond';
 import {
   closedPage,
   entryPage,
+  type EntryOptions,
   homePage,
   messagePage,
   pollPage,
@@ -54,6 +56,18 @@ export class PublicController {
   private async tokenHash(req: Request, slug: string): Promise<string | null> {
     const token = readCookie(req.get('cookie'), this.cookie(slug));
     return token && token.length <= 128 ? sha256(token) : null;
+  }
+
+  /** Sends the entry form, with the Turnstile widget when the check is on. */
+  private sendEntry(
+    res: Response,
+    set: PublicSet,
+    options: Omit<EntryOptions, 'siteKey'> = {},
+    status = 200
+  ): void {
+    const siteKey = this.config.turnstile?.siteKey ?? null;
+    if (siteKey) allowChallengeOrigin(res, TURNSTILE_ORIGIN);
+    sendPage(res, entryPage(set, { ...options, siteKey }), status);
   }
 
   private async openSet(slug: string): Promise<PublicSet | null> {
@@ -95,7 +109,7 @@ export class PublicController {
       return res.redirect(303, `/p/${slug}/results`);
     if (set.status === 'closed') return sendPage(res, closedPage(set));
     if (progress === 'entered') return sendPage(res, pollPage(set));
-    sendPage(res, entryPage(set));
+    this.sendEntry(res, set);
   }
 
   @Post('p/:slug/enter')
@@ -108,6 +122,25 @@ export class PublicController {
     if (!set) return goneMessage(res);
     const values = prefixedInput(req.body, 'f.');
 
+    if (this.config.turnstile) {
+      const passed = await verifyTurnstile(
+        this.config.turnstile.secretKey,
+        bodyString(req.body, 'cf-turnstile-response'),
+        clientIp(req)
+      );
+      if (!passed) {
+        return this.sendEntry(
+          res,
+          set,
+          {
+            values,
+            checkError: 'The quick check didn’t go through. Try it again.',
+          },
+          422
+        );
+      }
+    }
+
     const existing = readCookie(req.get('cookie'), this.cookie(slug));
     const token = existing && existing.length <= 128 ? existing : randomToken();
     const ipKey = await sha256(
@@ -119,9 +152,10 @@ export class PublicController {
     } catch (error) {
       if (!(error instanceof BackendError)) throw error;
       if (error.kind === 'invalid') {
-        return sendPage(
+        return this.sendEntry(
           res,
-          entryPage(set, values, error.data.errors as Record<string, string>),
+          set,
+          { values, errors: error.data.errors as Record<string, string> },
           422
         );
       }

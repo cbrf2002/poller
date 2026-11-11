@@ -60,6 +60,13 @@ in batches.
 - Participants: no account. Entering a set sets
   `__Host-poller_p_<code>` (60 days); its hash identifies their respondent
   row, so one browser answers once and can return to the results.
+- Bots: the entry form carries a Cloudflare Turnstile widget (rendered
+  explicitly by `client/app.ts`, usually invisible). `POST /p/:code/enter`
+  verifies the token with Cloudflare's siteverify API before anything reaches
+  Convex and fails closed if Cloudflare can't be reached. Only pages showing
+  the widget widen the CSP, to allow `challenges.cloudflare.com` scripts and
+  frames. Turnstile is on when both `TURNSTILE_SITE_KEY` and
+  `TURNSTILE_SECRET_KEY` are set; setting only one stops the Worker starting.
 - Repeats across browsers: a detail field can allow one response per value
   (e.g. per email). Values are compared case- and spacing-insensitively
   (phones by digits) and recorded for every eligible field, so turning the

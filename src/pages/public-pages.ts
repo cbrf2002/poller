@@ -76,15 +76,25 @@ function setHeader(set: PublicSet, eyebrow: string): SafeHtml {
   </section>`;
 }
 
+export interface EntryOptions {
+  values?: Values;
+  errors?: Errors;
+  /** Turnstile site key when the check is on. */
+  siteKey?: string | null;
+  /** Shown under the check when the last attempt didn't pass it. */
+  checkError?: string;
+}
+
 export function entryPage(
   set: PublicSet,
-  values: Values = {},
-  errors: Errors = {}
+  options: EntryOptions = {}
 ): SafeHtml {
+  const { values = {}, errors = {}, siteKey = null, checkError = '' } = options;
   const fields = set.content.fields;
   const failed = Object.keys(errors).length > 0;
   return page({
     title: set.content.title,
+    turnstile: siteKey !== null,
     body: html`${setHeader(set, 'Before you start')}
       <section class="rule crop sec-tight">
         <form
@@ -105,8 +115,17 @@ export function entryPage(
                   ahead.
                 </p>`
           }
+          ${
+            siteKey
+              ? html`<div class="field">
+                  <div data-turnstile="${siteKey}"></div>
+                  <noscript><p class="field-error">Turn on JavaScript to pass the quick check before starting.</p></noscript>
+                  ${checkError ? html`<p class="field-error" role="alert">${checkError}</p>` : ''}
+                </div>`
+              : ''
+          }
           <div class="ctas">
-            <button class="btn btn-primary" type="submit">
+            <button class="btn btn-primary" type="submit" data-needs-check>
               Start answering ${icon('arrow', 16)}
             </button>
           </div>

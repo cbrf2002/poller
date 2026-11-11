@@ -9,6 +9,8 @@ export interface PageOptions {
   admin?: { email: string } | null;
   /** Loads the set editor script. */
   editor?: boolean;
+  /** Loads Cloudflare Turnstile (the page must also widen its CSP). */
+  turnstile?: boolean;
   body: SafeHtml;
 }
 
@@ -82,6 +84,7 @@ export function page(options: PageOptions): SafeHtml {
         <script src="${ASSETS.boot}"></script>
         <script type="module" src="${ASSETS.app}"></script>
         ${options.editor ? html`<script type="module" src="${ASSETS.editor}"></script>` : ''}
+        ${options.turnstile ? html`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&amp;onload=pollerTurnstileReady" async defer></script>` : ''}
       </head>
       <body class="antialiased">
         ${nav(options.admin)}

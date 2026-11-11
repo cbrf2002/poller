@@ -29,6 +29,7 @@ beforeAll(async () => {
     convexUrl: 'https://example.convex.cloud',
     serverSecret: 'x'.repeat(32),
     secureCookies: true,
+    turnstile: null,
   });
   await app.init();
   server = app.getHttpServer();

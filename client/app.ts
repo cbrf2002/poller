@@ -214,3 +214,53 @@ if (watch) {
     return false;
   });
 }
+
+// ── Turnstile on the entry form ───────────────────────────────
+interface TurnstileApi {
+  render(el: HTMLElement, options: Record<string, unknown>): string;
+  reset(id?: string): void;
+}
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+    pollerTurnstileReady?: () => void;
+  }
+}
+
+const challenge = document.querySelector<HTMLElement>('[data-turnstile]');
+if (challenge) {
+  const submit = challenge
+    .closest('form')
+    ?.querySelector<HTMLButtonElement>('[data-needs-check]');
+  // The check runs invisibly unless Cloudflare wants an interaction; hold
+  // the button until a token exists so a quick tap doesn't bounce back.
+  if (submit) submit.disabled = true;
+  const render = () => {
+    const api = window.turnstile;
+    if (!api || challenge.dataset.rendered) return;
+    challenge.dataset.rendered = 'true';
+    const id = api.render(challenge, {
+      sitekey: challenge.dataset.turnstile,
+      action: 'enter',
+      appearance: 'interaction-only',
+      size: 'flexible',
+      theme: document.documentElement.classList.contains('dark')
+        ? 'dark'
+        : 'light',
+      callback: () => {
+        if (submit) submit.disabled = false;
+      },
+      'expired-callback': () => {
+        if (submit) submit.disabled = true;
+        api.reset(id);
+      },
+      'error-callback': () => {
+        // Let the server explain; a disabled button with no reason helps no one.
+        if (submit) submit.disabled = false;
+      },
+    });
+  };
+  // The script may load before or after this module; cover both orders.
+  window.pollerTurnstileReady = render;
+  render();
+}
