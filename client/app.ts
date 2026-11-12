@@ -1,4 +1,4 @@
-import type { QuestionResult } from '../shared/results';
+import { countLabel, resultMeta, type QuestionResult } from '../shared/results';
 import { h, readJson } from './dom';
 
 // ── Theme ─────────────────────────────────────────────────────
@@ -78,10 +78,6 @@ interface LiveResults {
   results: QuestionResult[];
 }
 
-function votes(n: number): string {
-  return `${n} ${n === 1 ? 'vote' : 'votes'}`;
-}
-
 /** Replays the row's jolt so each new vote is felt, even back to back. */
 function bump(row: HTMLElement): void {
   row.classList.remove('bumped');
@@ -101,26 +97,26 @@ function applyResults(data: LiveResults): boolean {
     const card = cards[i];
     if (!card || card.dataset.question !== result.id) return false;
     const meta = card.querySelector('[data-meta]');
-    if (meta) {
-      meta.textContent =
-        result.type === 'rating' && result.average !== null
-          ? `Average ${result.average} of 5`
-          : `${result.answered} answered`;
-    }
+    if (meta) meta.textContent = resultMeta(result);
     const rows = card.querySelectorAll<HTMLElement>('[data-choice]');
     if (result.type !== 'text' && rows.length !== result.choices.length)
       return false;
-    const top = Math.max(0, ...result.choices.map(c => c.count));
+    const top = Math.max(0, ...result.choices.map(c => c.percent));
     for (const [j, choice] of result.choices.entries()) {
       const row = rows[j];
       if (!row) continue;
       if (row.dataset.choice !== choice.id) return false;
-      row.classList.toggle('lead', top > 0 && choice.count === top);
+      row.classList.toggle('lead', top > 0 && choice.percent === top);
       const percent = row.querySelector('[data-percent]');
       const count = row.querySelector('[data-count]');
-      if (count && count.textContent !== votes(choice.count)) bump(row);
-      if (percent) percent.textContent = `${choice.percent}%`;
-      if (count) count.textContent = votes(choice.count);
+      // A new vote shifts every share; only the row it landed on jolts.
+      const changed =
+        result.type === 'ranking'
+          ? percent?.textContent !== choice.figure
+          : count?.textContent !== countLabel(result.type, choice.count);
+      if (changed) bump(row);
+      if (percent) percent.textContent = choice.figure;
+      if (count) count.textContent = countLabel(result.type, choice.count);
       row.querySelector('rect')?.setAttribute('width', String(choice.percent));
     }
   }
@@ -285,4 +281,66 @@ if (challenge) {
   // The script may load before or after this module; cover both orders.
   window.pollerTurnstileReady = render;
   render();
+}
+
+// ── Rankings ──────────────────────────────────────────────────
+// Rows carry hidden inputs, so the order on screen is the order submitted.
+// Each move slides the swapped rows from where they were (FLIP).
+for (const list of document.querySelectorAll<HTMLOListElement>(
+  '[data-ranking]'
+)) {
+  const status = list.parentElement?.querySelector('[data-rank-status]');
+  const renumber = () => {
+    for (const [i, row] of [...list.children].entries()) {
+      const pos = row.querySelector('.rank-pos');
+      if (pos) pos.textContent = String(i + 1);
+    }
+  };
+  list.addEventListener('click', event => {
+    const button = (event.target as Element).closest<HTMLButtonElement>(
+      'button[data-move]'
+    );
+    const row = button?.closest('li');
+    if (!button || !row) return;
+    const step = Number(button.dataset.move);
+    const other =
+      step < 0 ? row.previousElementSibling : row.nextElementSibling;
+    if (!other) return;
+
+    const before = new Map(
+      [row, other].map(el => [el, el.getBoundingClientRect().top])
+    );
+    if (step < 0) other.before(row);
+    else other.after(row);
+    renumber();
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    for (const [el, top] of before) {
+      const shift = top - el.getBoundingClientRect().top;
+      if (shift && !still)
+        el.animate(
+          [{ transform: `translateY(${shift}px)` }, { transform: 'none' }],
+          { duration: 260, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+        );
+    }
+    row.classList.remove('moved');
+    void row.offsetWidth;
+    row.classList.add('moved');
+    button.focus();
+    const label = row.querySelector('.rank-label')?.textContent ?? '';
+    const place = [...list.children].indexOf(row) + 1;
+    if (status) status.textContent = `${label} is now number ${place}.`;
+  });
+}
+
+// ── "Other" write-ins ─────────────────────────────────────────
+// Typing an answer next to "Other" picks it, so nobody has to do both.
+for (const text of document.querySelectorAll<HTMLInputElement>(
+  '[data-other-text]'
+)) {
+  const pick = text
+    .closest('label')
+    ?.querySelector<HTMLInputElement>('input[value="other"]');
+  text.addEventListener('input', () => {
+    if (pick && text.value.trim()) pick.checked = true;
+  });
 }

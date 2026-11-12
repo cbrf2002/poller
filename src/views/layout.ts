@@ -29,14 +29,14 @@ function themeButton(): SafeHtml {
 function nav(admin: PageOptions['admin']): SafeHtml {
   return html`<header class="site-nav">
     <nav class="nav-inner" aria-label="Main">
-      <a class="wordmark" href="${admin ? '/admin' : '/'}">
+      <a class="wordmark" href="${admin ? '/creator' : '/'}">
         <span class="wordmark-word">Poller</span>
       </a>
       <div class="nav-links">
         ${
           admin
-            ? html`<a class="nav-link optional" href="/admin">Sets</a>
-                <form method="post" action="/admin/logout">
+            ? html`<a class="nav-link optional" href="/creator">Sets</a>
+                <form method="post" action="/creator/logout">
                   <button class="nav-link" type="submit">Sign out</button>
                 </form>`
             : ''
@@ -98,7 +98,7 @@ export function page(options: PageOptions): SafeHtml {
         <footer class="frame rule crop">
           <div class="site-footer">
             <span>Poller</span>
-            ${options.admin ? html`<span>${options.admin.email}</span>` : html`<a href="/admin">Creator sign-in</a>`}
+            ${options.admin ? html`<span>${options.admin.email}</span>` : html`<a href="/creator">Creator sign-in</a>`}
           </div>
         </footer>
       </body>

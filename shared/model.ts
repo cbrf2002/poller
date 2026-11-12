@@ -28,15 +28,48 @@ export const FIELD_TYPE_NAMES: Record<FieldType, string> = {
   checkbox: 'Checkbox',
 };
 
-export const QUESTION_TYPES = ['single', 'multiple', 'rating', 'text'] as const;
+export const QUESTION_TYPES = [
+  'single',
+  'multiple',
+  'yesno',
+  'rating',
+  'ranking',
+  'text',
+] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 export const QUESTION_TYPE_NAMES: Record<QuestionType, string> = {
   single: 'One choice',
   multiple: 'Several choices',
-  rating: 'Rating 1–5',
+  yesno: 'Yes or no',
+  rating: 'Rating scale',
+  ranking: 'Ranking',
   text: 'Written answer',
 };
+
+/** Types whose choices the creator writes. */
+export const CHOICE_TYPES: readonly QuestionType[] = [
+  'single',
+  'multiple',
+  'ranking',
+];
+
+/** Types that can offer an "Other" choice with a write-in. */
+export const OTHER_TYPES: readonly QuestionType[] = ['single', 'multiple'];
+
+/**
+ * Choice id for the write-in "Other". Editor ids never take this value, so
+ * it can't collide with a written choice.
+ */
+export const OTHER_ID = 'other';
+
+/** Fixed choices of a yes-or-no question. */
+export const YES_NO: readonly Choice[] = [
+  { id: 'yes', label: 'Yes' },
+  { id: 'no', label: 'No' },
+];
+
+export const RATING_SCALE = { min: 2, max: 10, default: 5 } as const;
 
 export const SET_STATUSES = ['draft', 'published', 'closed'] as const;
 export type SetStatus = (typeof SET_STATUSES)[number];
@@ -73,8 +106,15 @@ export interface Question {
   prompt: string;
   type: QuestionType;
   required: boolean;
-  /** Choices for `single` and `multiple`; empty for `rating` and `text`. */
+  /** Choices for `single`, `multiple` and `ranking`; empty otherwise. */
   options: Choice[];
+  /** `single`/`multiple`: adds an "Other" choice with a write-in. */
+  allowOther?: boolean;
+  /** `rating`: highest point, 2–10. Missing means 5 (older sets). */
+  scale?: number;
+  /** `rating`: words under the lowest and highest points. */
+  lowLabel?: string;
+  highLabel?: string;
 }
 
 export interface SetContent {
@@ -87,13 +127,22 @@ export interface SetContent {
 /** One respondent's answer to one question. */
 export interface Answer {
   questionId: string;
-  /** Picked choice ids; for `rating` the single value "1".."5". */
+  /**
+   * Picked choice ids: for `rating` the single value "1".."scale", for
+   * `yesno` "yes" or "no", for `ranking` every choice, top first.
+   */
   optionIds: string[];
-  /** Written answer for `text` questions, otherwise empty. */
+  /** Written answer for `text`, or the "Other" write-in; otherwise empty. */
   text: string;
+  /** Set on ranking answers, whose order counts toward the results. */
+  ranked?: boolean;
 }
 
-export const RATING_VALUES = ['1', '2', '3', '4', '5'] as const;
+/** The points of a rating question, as answer values ("1".."scale"). */
+export function ratingValues(question: Pick<Question, 'scale'>): string[] {
+  const scale = question.scale ?? RATING_SCALE.default;
+  return Array.from({ length: scale }, (_, i) => String(i + 1));
+}
 
 export const LIMITS = {
   title: 120,
@@ -105,6 +154,8 @@ export const LIMITS = {
   choices: 20,
   fieldValue: 500,
   textAnswer: 1000,
+  otherAnswer: 200,
+  scaleLabel: 40,
 } as const;
 
 /** Public link code: 10 characters, no look-alikes (0/o, 1/l/i). */

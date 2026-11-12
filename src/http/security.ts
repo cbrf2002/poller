@@ -100,6 +100,23 @@ export function sameOriginOnly(
     .send('Cross-site requests are not accepted.');
 }
 
+/**
+ * Creator pages used to live under /admin. Bookmarks and saved passwords
+ * still point there, so send page visits on; only GETs, since a replayed
+ * form post from an old tab should not act on anything.
+ */
+export function movedFromAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (req.path !== '/admin' && !req.path.startsWith('/admin/')) return next();
+  const at = req.originalUrl.indexOf('?');
+  const query = at === -1 ? '' : req.originalUrl.slice(at);
+  res.redirect(301, `/creator${req.path.slice('/admin'.length)}${query}`);
+}
+
 /** The caller's address as Cloudflare reports it. */
 export function clientIp(req: Request): string {
   return req.get('cf-connecting-ip') ?? req.socket.remoteAddress ?? 'unknown';

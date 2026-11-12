@@ -145,8 +145,8 @@ describe('participant flow', () => {
       .get(`/p/${SLUG}/results.json`)
       .set('Cookie', cookie);
     expect(results.body.results[0].choices).toEqual([
-      { id: 'pizza', label: 'Pizza', count: 0, percent: 0 },
-      { id: 'sushi', label: 'Sushi', count: 1, percent: 100 },
+      { id: 'pizza', label: 'Pizza', count: 0, percent: 0, figure: '0%' },
+      { id: 'sushi', label: 'Sushi', count: 1, percent: 100, figure: '100%' },
     ]);
   });
 
@@ -186,22 +186,33 @@ describe('participant flow', () => {
 
 describe('creator sign-in', () => {
   test('admin pages send signed-out visitors to sign in', async () => {
-    const res = await request(server).get('/admin');
+    const res = await request(server).get('/creator');
     expect(res.status).toBe(303);
-    expect(res.headers.location).toBe('/admin/login');
+    expect(res.headers.location).toBe('/creator/login');
     expect(
-      (await request(server).put('/admin/api/sets/x').send({})).status
+      (await request(server).put('/creator/api/sets/x').send({})).status
     ).toBe(401);
+  });
+
+  test('old /admin links land on the creator pages', async () => {
+    const res = await request(server).get('/admin/sets/abc/results?after=x');
+    expect(res.status).toBe(301);
+    expect(res.headers.location).toBe('/creator/sets/abc/results?after=x');
+    const post = await request(server)
+      .post('/admin/login')
+      .type('form')
+      .send({ email: 'host@example.com', password: 'correct horse battery' });
+    expect(post.status).toBe(404);
   });
 
   test('a correct password starts a session', async () => {
     const res = await request(server)
-      .post('/admin/login')
+      .post('/creator/login')
       .type('form')
       .send({ email: 'host@example.com', password: 'correct horse battery' });
-    expect(res.headers.location).toBe('/admin');
+    expect(res.headers.location).toBe('/creator');
     const dashboard = await request(server)
-      .get('/admin')
+      .get('/creator')
       .set('Cookie', cookiesFrom(res));
     expect(dashboard.status).toBe(200);
     expect(dashboard.text).toContain('host@example.com');
@@ -210,13 +221,13 @@ describe('creator sign-in', () => {
   test('repeated wrong passwords lock sign-in', async () => {
     for (let i = 0; i < 3; i++) {
       const res = await request(server)
-        .post('/admin/login')
+        .post('/creator/login')
         .type('form')
         .send({ email: 'host@example.com', password: 'wrong' });
       expect(res.status).toBe(401);
     }
     const locked = await request(server)
-      .post('/admin/login')
+      .post('/creator/login')
       .type('form')
       .send({ email: 'host@example.com', password: 'correct horse battery' });
     expect(locked.status).toBe(429);

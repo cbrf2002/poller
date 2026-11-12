@@ -12,7 +12,7 @@ import { messagePage } from '../pages/public-pages';
 import { sendPage } from './respond';
 
 const wantsJson = (req: Request) =>
-  req.path.startsWith('/admin/api/') || req.path.endsWith('.json');
+  req.path.startsWith('/creator/api/') || req.path.endsWith('.json');
 
 /** Turns every failure into a page (or JSON for API routes) without leaking internals. */
 @Catch()
@@ -33,7 +33,7 @@ export class ErrorFilter implements ExceptionFilter {
         res.status(401).json({ error: 'signed_out' });
         return;
       }
-      res.redirect(303, '/admin/login');
+      res.redirect(303, '/creator/login');
       return;
     }
 

@@ -1,10 +1,13 @@
 import { newItemId } from '../shared/ids';
 import {
+  CHOICE_TYPES,
   FIELD_TYPE_NAMES,
   FIELD_TYPES,
   LIMITS,
+  OTHER_TYPES,
   QUESTION_TYPE_NAMES,
   QUESTION_TYPES,
+  RATING_SCALE,
   UNIQUE_FIELD_TYPES,
   type FieldType,
   type ProfileField,
@@ -77,7 +80,7 @@ function startEditor(set: SetData, root: HTMLElement): void {
   async function send(): Promise<void> {
     dirty = false;
     showState('Saving…', 'busy');
-    const response = await fetch(`/admin/api/sets/${set.id}`, {
+    const response = await fetch(`/creator/api/sets/${set.id}`, {
       method: 'PUT',
       headers: {
         'content-type': 'application/json',
@@ -573,20 +576,85 @@ function startEditor(set: SetData, root: HTMLElement): void {
           QUESTION_TYPE_NAMES,
           (v: QuestionType) => {
             question.type = v;
-            const choices = v === 'single' || v === 'multiple';
-            if (choices && question.options.length < 2) {
+            if (CHOICE_TYPES.includes(v) && question.options.length < 2) {
               question.options = [
                 { id: newItemId(), label: '' },
                 { id: newItemId(), label: '' },
               ];
             }
+            if (v === 'ranking') question.required = true;
           }
         )
       ),
-      question.type === 'single' || question.type === 'multiple'
-        ? choiceRows(question)
-        : null,
-      checkToggle('Required', question.required, v => (question.required = v))
+      CHOICE_TYPES.includes(question.type) ? choiceRows(question) : null,
+      question.type === 'rating' ? ratingControls(question) : null,
+      h(
+        'div',
+        { class: 'toggles' },
+        OTHER_TYPES.includes(question.type)
+          ? checkToggle(
+              'Add “Other” with a write-in',
+              question.allowOther === true,
+              v => (question.allowOther = v)
+            )
+          : null,
+        // Every ranking arrives in some order, so it is always answered.
+        question.type === 'ranking'
+          ? null
+          : checkToggle(
+              'Required',
+              question.required,
+              v => (question.required = v)
+            )
+      )
+    );
+  }
+
+  function ratingControls(question: Question): HTMLElement {
+    const scale = question.scale ?? RATING_SCALE.default;
+    const id = `in-${newItemId()}`;
+    const points: number[] = [];
+    for (let n = RATING_SCALE.min; n <= RATING_SCALE.max; n++) points.push(n);
+    return h(
+      'div',
+      { class: 'row-3' },
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { class: 'field-label', for: id }, 'Points'),
+        h(
+          'select',
+          {
+            class: 'select',
+            id,
+            onchange: (e: Event) => {
+              question.scale = Number((e.target as HTMLSelectElement).value);
+              scheduleSave(200);
+            },
+          },
+          points.map(n =>
+            h(
+              'option',
+              { value: String(n), selected: n === scale },
+              `1 to ${n}`
+            )
+          )
+        )
+      ),
+      textInput(
+        'Word for 1',
+        question.lowLabel ?? '',
+        LIMITS.scaleLabel,
+        v => (question.lowLabel = v),
+        { placeholder: 'Low' }
+      ),
+      textInput(
+        `Word for the top`,
+        question.highLabel ?? '',
+        LIMITS.scaleLabel,
+        v => (question.highLabel = v),
+        { placeholder: 'High' }
+      )
     );
   }
 

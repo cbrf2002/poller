@@ -10,15 +10,18 @@ with the code, answer, and then watch the results come in live.
 
 **For hosts**
 
-- Poll sets with one-choice, several-choice, 1–5 rating and written-answer
-  questions.
+- Poll sets with one-choice, several-choice, yes-or-no, rating, ranking and
+  written-answer questions. Choice questions can add an "Other" with a
+  write-in; ratings run from 1 to anywhere between 2 and 10 (5 by default),
+  with your own words for each end.
 - Choose the details to collect before people answer: name, email, phone,
   birthday, number, dropdown, checkbox or any custom text, each optional or
   required.
 - Edits save automatically. Once a set is published, every valid change
   reaches participants straight away; a half-finished edit never goes public.
 - Publish, close (results stay visible) or unpublish a set at any time.
-- Live results with per-choice bars and rating averages, a respondent table,
+- Live results with per-choice bars, rating averages and average ranking
+  places, a respondent table,
   and CSV export.
 - Remove a single response, for example a test entry or a duplicate.
 
@@ -85,7 +88,8 @@ TURNSTILE_SITE_KEY=1x00000000000000000000AA
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 ```
 
-Then create a host account and start the app on http://localhost:8787:
+Then create a creator account and start the app on http://localhost:8787
+(creator pages live under `/creator`):
 
 ```bash
 pnpm admin:create

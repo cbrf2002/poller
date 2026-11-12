@@ -27,7 +27,9 @@ Poller looks like an engineering notebook on warm paper.
 ## Mobile
 
 - 16 px form text (no iOS zoom on focus); every control is at least 44 px tall.
-- Whole choice rows are tap targets; ratings are a five-cell grid.
+- Whole choice rows are tap targets; ratings are one row of 2 to 10 cells
+  (past seven they wrap into rows of five), and ranking rows move with
+  44 px up and down buttons.
 - At ≤ 560 px, sections use 20 px gutters, button groups stack full width,
   editor rows go single-column, stats stay in one compact row, and wide
   tables scroll inside their frame instead of the page.

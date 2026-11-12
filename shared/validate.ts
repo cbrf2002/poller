@@ -1,11 +1,16 @@
 import { newItemId } from './ids';
 import {
+  CHOICE_TYPES,
   FIELD_TYPES,
   ITEM_ID_PATTERN,
   LIMITS,
+  OTHER_ID,
+  OTHER_TYPES,
   QUESTION_TYPES,
-  RATING_VALUES,
+  RATING_SCALE,
   UNIQUE_FIELD_TYPES,
+  YES_NO,
+  ratingValues,
   type Answer,
   type Choice,
   type FieldType,
@@ -33,7 +38,9 @@ export function cleanText(value: unknown, max: number): string {
 
 function cleanId(value: unknown, taken: Set<string>): string {
   let id =
-    typeof value === 'string' && ITEM_ID_PATTERN.test(value)
+    typeof value === 'string' &&
+    ITEM_ID_PATTERN.test(value) &&
+    value !== OTHER_ID
       ? value
       : newItemId();
   while (taken.has(id)) id = newItemId();
@@ -85,22 +92,33 @@ export function normalizeSetContent(input: unknown): SetContent {
     .filter(isRecord)
     .map(q => {
       const type: QuestionType = pick(q.type, QUESTION_TYPES, 'single');
-      const options: Choice[] =
-        type === 'single' || type === 'multiple'
-          ? list(q.options, LIMITS.choices)
-              .filter(isRecord)
-              .map(o => ({
-                id: cleanId(o.id, ids),
-                label: cleanText(o.label, LIMITS.choice),
-              }))
-          : [];
-      return {
+      const options: Choice[] = CHOICE_TYPES.includes(type)
+        ? list(q.options, LIMITS.choices)
+            .filter(isRecord)
+            .map(o => ({
+              id: cleanId(o.id, ids),
+              label: cleanText(o.label, LIMITS.choice),
+            }))
+        : [];
+      const question: Question = {
         id: cleanId(q.id, ids),
         prompt: cleanText(q.prompt, LIMITS.label),
         type,
-        required: q.required === true,
+        // A ranking always arrives in some order, so it is always answered.
+        required: type === 'ranking' || q.required === true,
         options,
       };
+      if (OTHER_TYPES.includes(type) && q.allowOther === true)
+        question.allowOther = true;
+      if (type === 'rating') {
+        const scale = Math.round(Number(q.scale));
+        question.scale = Number.isFinite(scale)
+          ? Math.min(RATING_SCALE.max, Math.max(RATING_SCALE.min, scale))
+          : RATING_SCALE.default;
+        question.lowLabel = cleanText(q.lowLabel, LIMITS.scaleLabel);
+        question.highLabel = cleanText(q.highLabel, LIMITS.scaleLabel);
+      }
+      return question;
     });
 
   return {
@@ -127,7 +145,7 @@ export function publishProblems(content: SetContent): string[] {
   content.questions.forEach((question, i) => {
     const name = question.prompt || `Question ${i + 1}`;
     if (!question.prompt) problems.push(`Question ${i + 1} needs a prompt.`);
-    if (question.type === 'single' || question.type === 'multiple') {
+    if (CHOICE_TYPES.includes(question.type)) {
       const labelled = question.options.filter(o => o.label);
       if (labelled.length < 2)
         problems.push(`“${name}” needs at least two choices.`);
@@ -237,6 +255,11 @@ export function repeatedValueError(field: ProfileField): string {
     : `Someone has already answered with this ${field.label.toLowerCase() || 'value'}.`;
 }
 
+/** Form input key holding the "Other" write-in of a question. */
+export function otherKey(questionId: string): string {
+  return `${questionId}-other`;
+}
+
 function asList(value: unknown): string[] {
   if (Array.isArray(value))
     return value.filter((v): v is string => typeof v === 'string');
@@ -266,11 +289,28 @@ export function validateAnswers(
     if (question.type === 'text') {
       const text = cleanText(given[0], LIMITS.textAnswer);
       if (text) answer = { questionId: question.id, optionIds: [], text };
+    } else if (question.type === 'ranking') {
+      const ids = question.options.map(o => o.id);
+      const order = [...new Set(given)];
+      if (order.length !== ids.length || order.some(id => !ids.includes(id))) {
+        errors[question.id] =
+          'The choices changed while you were answering. Put them in order again.';
+        continue;
+      }
+      answer = {
+        questionId: question.id,
+        optionIds: order,
+        text: '',
+        ranked: true,
+      };
     } else {
-      const allowed: readonly string[] =
+      const allowed: string[] =
         question.type === 'rating'
-          ? RATING_VALUES
-          : question.options.map(o => o.id);
+          ? ratingValues(question)
+          : question.type === 'yesno'
+            ? YES_NO.map(c => c.id)
+            : question.options.map(o => o.id);
+      if (question.allowOther) allowed.push(OTHER_ID);
       const picked = [...new Set(given)];
       if (picked.some(id => !allowed.includes(id))) {
         errors[question.id] = 'That choice is no longer available. Pick again.';
@@ -280,8 +320,19 @@ export function validateAnswers(
         errors[question.id] = 'Pick only one.';
         continue;
       }
+      let text = '';
+      if (picked.includes(OTHER_ID)) {
+        text = cleanText(
+          asList(input[otherKey(question.id)])[0],
+          LIMITS.otherAnswer
+        );
+        if (!text) {
+          errors[question.id] = 'Write your answer next to “Other”.';
+          continue;
+        }
+      }
       if (picked.length)
-        answer = { questionId: question.id, optionIds: picked, text: '' };
+        answer = { questionId: question.id, optionIds: picked, text };
     }
 
     if (answer) answers.push(answer);

@@ -13,6 +13,7 @@ import {
 import type { Request, Response } from 'express';
 import { SET_STATUSES, type SetStatus } from '../../shared/model';
 import { normalizeSetContent } from '../../shared/validate';
+import { answerSummary } from '../../shared/results';
 import { AdminAuth } from '../auth/admin-auth';
 import { AdminGuard, sessionOf } from '../auth/admin-guard';
 import {
@@ -32,13 +33,13 @@ import {
 
 const PAGE_SIZE = 50;
 
-@Controller('admin')
+@Controller('creator')
 export class AdminSignInController {
   constructor(@Inject(AdminAuth) private readonly auth: AdminAuth) {}
 
   @Get('login')
   async form(@Req() req: Request, @Res() res: Response) {
-    if (await this.auth.current(req)) return res.redirect(303, '/admin');
+    if (await this.auth.current(req)) return res.redirect(303, '/creator');
     sendPage(res, loginPage());
   }
 
@@ -47,7 +48,7 @@ export class AdminSignInController {
     const email = bodyString(req.body, 'email').trim().slice(0, 254);
     const password = bodyString(req.body, 'password');
     const result = await this.auth.signIn(req, res, email, password);
-    if (result.ok) return res.redirect(303, '/admin');
+    if (result.ok) return res.redirect(303, '/creator');
     if (result.reason === 'locked') {
       const minutes = Math.max(1, Math.ceil(result.retryAfter / 60000));
       res.setHeader('Retry-After', String(minutes * 60));
@@ -67,11 +68,11 @@ export class AdminSignInController {
   @Post('logout')
   async signOut(@Req() req: Request, @Res() res: Response) {
     await this.auth.signOut(req, res);
-    res.redirect(303, '/admin/login');
+    res.redirect(303, '/creator/login');
   }
 }
 
-@Controller('admin')
+@Controller('creator')
 @UseGuards(AdminGuard)
 export class AdminController {
   constructor(@Inject(Backend) private readonly backend: Backend) {}
@@ -86,7 +87,7 @@ export class AdminController {
   async create(@Req() req: Request, @Res() res: Response) {
     const title = bodyString(req.body, 'title');
     const id = await this.backend.createSet(sessionOf(req).tokenHash, title);
-    res.redirect(303, `/admin/sets/${id}`);
+    res.redirect(303, `/creator/sets/${id}`);
   }
 
   @Get('sets/:id')
@@ -109,7 +110,7 @@ export class AdminController {
     const { admin, tokenHash } = sessionOf(req);
     const status = bodyString(req.body, 'status') as SetStatus;
     if (!SET_STATUSES.includes(status))
-      return res.redirect(303, `/admin/sets/${id}`);
+      return res.redirect(303, `/creator/sets/${id}`);
     try {
       await this.backend.changeStatus(tokenHash, id, status);
     } catch (error) {
@@ -124,7 +125,7 @@ export class AdminController {
       }
       throw error;
     }
-    res.redirect(303, `/admin/sets/${id}`);
+    res.redirect(303, `/creator/sets/${id}`);
   }
 
   @Post('sets/:id/delete')
@@ -134,7 +135,7 @@ export class AdminController {
     @Res() res: Response
   ) {
     await this.backend.removeSet(sessionOf(req).tokenHash, id);
-    res.redirect(303, '/admin');
+    res.redirect(303, '/creator');
   }
 
   @Post('sets/:id/respondents/:respondentId/delete')
@@ -149,7 +150,7 @@ export class AdminController {
       id,
       respondentId
     );
-    res.redirect(303, `/admin/sets/${id}/results`);
+    res.redirect(303, `/creator/sets/${id}/results`);
   }
 
   @Get('sets/:id/results')
@@ -203,12 +204,7 @@ export class AdminController {
           ...data.fields.map(f => person.profile[f.id] ?? ''),
           ...questions.map(q => {
             const a = answers.get(q.id);
-            if (!a) return '';
-            if (q.type === 'text') return a.text;
-            if (q.type === 'rating') return a.optionIds.join('; ');
-            return a.optionIds
-              .map(o => q.options.find(x => x.id === o)?.label ?? o)
-              .join('; ');
+            return a ? answerSummary(q, a, '; ') : '';
           }),
         ]);
       }
@@ -231,7 +227,7 @@ export class AdminController {
 }
 
 /** JSON endpoints used by the editor and the live results view. */
-@Controller('admin/api')
+@Controller('creator/api')
 @UseGuards(AdminGuard)
 export class AdminApiController {
   constructor(@Inject(Backend) private readonly backend: Backend) {}

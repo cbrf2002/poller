@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 import { newSlug } from '../shared/ids';
-import { buildResults } from '../shared/results';
+import { buildResults, tallyChanges } from '../shared/results';
 import { normalizeSetContent, publishProblems } from '../shared/validate';
 import { internal } from './_generated/api';
 import { internalMutation, type MutationCtx } from './_generated/server';
@@ -226,7 +226,7 @@ export const removeRespondent = serverMutation({
       .withIndex('by_respondentId', q => q.eq('respondentId', respondent._id))
       .first();
     for (const answer of response?.answers ?? []) {
-      for (const optionId of ['*', ...answer.optionIds]) {
+      for (const { optionId, amount } of tallyChanges(answer)) {
         const tally = await ctx.db
           .query('tallies')
           .withIndex('by_setId_and_questionId_and_optionId', q =>
@@ -237,9 +237,11 @@ export const removeRespondent = serverMutation({
           )
           .unique();
         if (!tally) continue;
-        if (tally.count <= 1) await ctx.db.delete('tallies', tally._id);
+        if (tally.count <= amount) await ctx.db.delete('tallies', tally._id);
         else
-          await ctx.db.patch('tallies', tally._id, { count: tally.count - 1 });
+          await ctx.db.patch('tallies', tally._id, {
+            count: tally.count - amount,
+          });
       }
     }
     if (response) await ctx.db.delete('responses', response._id);

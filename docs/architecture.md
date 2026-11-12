@@ -34,7 +34,7 @@ Browser ──► Cloudflare Worker ──► NestJS (Express 5) ──► Conve
   every 8 s (paused while the tab is hidden). A changed fingerprint of
   `[status, live]` shows a notice; reloading keeps typed answers through
   `sessionStorage`.
-- **Results**: participant and admin results pages poll JSON every 4 s and
+- **Results**: participant and creator results pages poll JSON every 4 s and
   update bars in place; a layout change (question added or removed) reloads.
 
 ## Data (Convex)
@@ -48,7 +48,7 @@ Browser ──► Cloudflare Worker ──► NestJS (Express 5) ──► Conve
 | `respondents`  | One per participant per set: token hash, profile values, timestamps                                                         |
 | `detailValues` | Comparable form of each identifying detail (text, email, phone, number), checked when a field allows one response per value |
 | `responses`    | One per submission: answers                                                                                                 |
-| `tallies`      | Vote counters per question choice; choice `*` = people who answered                                                         |
+| `tallies`      | Vote counters per question choice; `*` = people who answered, `<choice>~pos` = summed ranking places                        |
 
 Statuses: `draft` (not public) → `published` (taking answers) → `closed`
 (results only). Deleting a set schedules `sets.purge`, which removes its rows

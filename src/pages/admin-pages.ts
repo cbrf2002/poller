@@ -5,6 +5,7 @@ import type {
   RespondentsPage,
   SetSummary,
 } from '../backend/backend';
+import { answerSummary } from '../../shared/results';
 import { html, jsonBlock, type SafeHtml } from '../views/html';
 import { icon } from '../views/icons';
 import { page } from '../views/layout';
@@ -41,7 +42,7 @@ export function loginPage(error = '', email = ''): SafeHtml {
         <form
           class="win mx-auto w-full max-w-md"
           method="post"
-          action="/admin/login"
+          action="/creator/login"
         >
           <div class="win-bar">
             <span class="dot"></span><span class="dot"></span
@@ -93,7 +94,7 @@ export function dashboardPage(admin: Admin, sets: SetSummary[]): SafeHtml {
         <form
           class="flex w-full max-w-xl flex-col gap-4 sm:flex-row"
           method="post"
-          action="/admin/sets"
+          action="/creator/sets"
         >
           <label class="sr-only" for="new-title">Title for a new set</label>
           <input
@@ -117,7 +118,7 @@ export function dashboardPage(admin: Admin, sets: SetSummary[]): SafeHtml {
             ? html`<div class="grid-2">
                 ${sets.map(
                   set =>
-                    html`<a class="win" href="/admin/sets/${set.id}">
+                    html`<a class="win" href="/creator/sets/${set.id}">
                       <div class="win-bar">
                         <span class="dot"></span><span class="dot"></span
                         ><span class="dot"></span>
@@ -175,12 +176,12 @@ export function editorPage(
           aria-live="polite"
           >All changes saved</span
         >
-        <a class="btn btn-quiet" href="/admin/sets/${set.id}/results"
+        <a class="btn btn-quiet" href="/creator/sets/${set.id}/results"
           >Results</a
         >
         <form
           method="post"
-          action="/admin/sets/${set.id}/status"
+          action="/creator/sets/${set.id}/status"
           class="contents"
         >
           ${
@@ -253,7 +254,7 @@ export function editorPage(
       <section class="rule crop sec-tight">
         <form
           method="post"
-          action="/admin/sets/${set.id}/delete"
+          action="/creator/sets/${set.id}/delete"
           data-confirm="Delete this set and all of its responses? This can't be undone."
         >
           <button class="btn btn-quiet btn-danger" type="submit">
@@ -281,22 +282,15 @@ export function adminResultsPage(
   respondents: RespondentsPage,
   cursor: string | null
 ): SafeHtml {
-  const textQuestions = data.questions.filter(q => q.type === 'text');
-  const labelFor = (questionId: string, optionIds: string[]) => {
-    const q = data.questions.find(x => x.id === questionId);
-    if (!q) return '';
-    if (q.type === 'rating') return optionIds.join(', ');
-    return optionIds
-      .map(id => q.options.find(o => o.id === id)?.label ?? '')
-      .filter(Boolean)
-      .join(', ');
-  };
+  const textQuestions = data.questions.filter(
+    q => q.type === 'text' || q.allowOther
+  );
 
   return page({
     title: `Results · ${data.title}`,
     admin,
     body: html`<section class="hero">
-        <a class="mono-label" href="/admin/sets/${data.id}">← Back to editor</a>
+        <a class="mono-label" href="/creator/sets/${data.id}">← Back to editor</a>
         <div class="flex flex-wrap items-center gap-3">
           ${status(data.status)}
           ${data.status === 'published' ? html`<span class="mono-label live-dot">Updating live</span>` : ''}
@@ -305,7 +299,7 @@ export function adminResultsPage(
           ${data.title || 'Untitled set'} <em>results</em>
         </h1>
         <div class="ctas">
-          <a class="btn btn-secondary" href="/admin/sets/${data.id}/export.csv"
+          <a class="btn btn-secondary" href="/creator/sets/${data.id}/export.csv"
             >${icon('download', 16)} Download CSV</a
           >
         </div>
@@ -363,11 +357,11 @@ export function adminResultsPage(
                           ${data.questions.map(q => {
                             const a = answers.get(q.id);
                             return html`<td>
-                              ${a ? (q.type === 'text' ? a.text : labelFor(q.id, a.optionIds)) : '—'}
+                              ${a ? answerSummary(q, a, ', ') : '—'}
                             </td>`;
                           })}
                           <td class="!min-w-0">
-                            <form method="post" action="/admin/sets/${data.id}/respondents/${r.id}/delete"
+                            <form method="post" action="/creator/sets/${data.id}/respondents/${r.id}/delete"
                               data-confirm="Remove this response? Their answers come out of the results and they can join again. This can't be undone.">
                               <button class="tool-btn danger" type="submit" title="Remove response"
                                 aria-label="Remove the response from ${when(r.enteredAt)}">✕</button>
@@ -379,8 +373,8 @@ export function adminResultsPage(
                   </table>
                 </div>
                 <div class="mt-4 flex gap-3">
-                  ${cursor ? html`<a class="btn btn-quiet" href="/admin/sets/${data.id}/results">Newest</a>` : ''}
-                  ${respondents.isDone ? '' : html`<a class="btn btn-quiet" href="/admin/sets/${data.id}/results?after=${encodeURIComponent(respondents.continueCursor)}">Older ${icon('arrow', 14)}</a>`}
+                  ${cursor ? html`<a class="btn btn-quiet" href="/creator/sets/${data.id}/results">Newest</a>` : ''}
+                  ${respondents.isDone ? '' : html`<a class="btn btn-quiet" href="/creator/sets/${data.id}/results?after=${encodeURIComponent(respondents.continueCursor)}">Older ${icon('arrow', 14)}</a>`}
                 </div>`
             : html`<p class="muted">
                 Nobody has joined yet. Share the public link to get started.
@@ -388,6 +382,6 @@ export function adminResultsPage(
         }
         ${textQuestions.length ? html`<p class="field-hint mt-4">Written answers appear in the table and the CSV download.</p>` : ''}
       </section>
-      ${data.status === 'published' ? jsonBlock('live-results', { url: `/admin/api/sets/${data.id}/results` }) : ''}`,
+      ${data.status === 'published' ? jsonBlock('live-results', { url: `/creator/api/sets/${data.id}/results` }) : ''}`,
   });
 }

@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 import { ITEM_ID_PATTERN } from '../../shared/model';
+import { otherKey } from '../../shared/validate';
 import type { FormInput } from '../backend/backend';
 
 /**
@@ -19,6 +20,18 @@ export function prefixedInput(body: unknown, prefix: string): FormInput {
         .filter((v): v is string => typeof v === 'string')
         .slice(0, 25);
     }
+  }
+  return input;
+}
+
+/**
+ * Answers from the poll form: `q.<id>` holds the pick(s) and `o.<id>` the
+ * "Other" write-in, which validation reads under `otherKey(id)`.
+ */
+export function answerInput(body: unknown): FormInput {
+  const input = prefixedInput(body, 'q.');
+  for (const [id, value] of Object.entries(prefixedInput(body, 'o.'))) {
+    if (typeof value === 'string') input[otherKey(id)] = value;
   }
   return input;
 }

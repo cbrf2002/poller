@@ -776,19 +776,25 @@
     outline: 2px solid var(--highlight);
     outline-offset: 2px;
   }
+  /* One cell per point, 2 to 10 of them. Each cell's outline fills the 1px
+     gap it shares with its neighbours, so a row that wraps on a phone keeps
+     its hairlines without drawing empty cells. */
   .rating {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    border: 1px solid var(--grid500);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 1px;
+    padding: 1px;
   }
   .rating .choice {
     border: 0;
+    outline: 1px solid var(--grid500);
     justify-content: center;
     font: 500 18px var(--font-mono);
     min-height: 56px;
   }
-  .rating .choice + .choice {
-    border-left: 1px solid var(--grid500);
+  .rating.yesno .choice {
+    font: 600 16px var(--font-sans);
   }
   .rating .choice input {
     position: absolute;
@@ -801,6 +807,64 @@
   .rating-ends {
     display: flex;
     justify-content: space-between;
+    gap: 16px;
+  }
+  .rating-ends span:last-child {
+    text-align: right;
+  }
+
+  /* "Other": the write-in sits in the row it picks. */
+  .choice-other {
+    flex-wrap: wrap;
+  }
+  .other-input {
+    flex: 1 1 180px;
+    min-height: 40px;
+    padding-block: 6px;
+  }
+
+  /* Rankings: numbered rows that trade places. */
+  .ranking {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 56px;
+    padding: 6px 6px 6px 14px;
+    border: 1px solid var(--grid500);
+    background: var(--fg100);
+    color: var(--text-loud);
+  }
+  .rank-pos {
+    flex: none;
+    width: 30px;
+    font: 600 18px/1 var(--font-mono);
+    color: var(--ink-accent);
+  }
+  .rank-label {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .rank-moves {
+    display: flex;
+    gap: 4px;
+  }
+  .rank-moves .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .rank-row:first-child [data-move='-1'],
+  .rank-row:last-child [data-move='1'] {
+    visibility: hidden;
+  }
+  .rank-row.moved {
+    border-color: var(--ink-accent);
+    transition: border-color 0.6s var(--ease);
   }
 
   /* ── Question cards ────────────────────────────────────────── */
@@ -994,6 +1058,16 @@
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 14px;
   }
+  .row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 24px;
+  }
   .toggle {
     display: inline-flex;
     align-items: center;
@@ -1064,6 +1138,11 @@
     }
   }
   @media (max-width: 560px) {
+    /* Past seven points the cells drop under a comfortable tap size. */
+    .rating[data-points='many'] {
+      grid-auto-flow: row;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
     .sec {
       padding: 52px 20px;
     }
@@ -1079,7 +1158,8 @@
     .win-body {
       padding: 18px;
     }
-    .row-2 {
+    .row-2,
+    .row-3 {
       grid-template-columns: minmax(0, 1fr);
     }
     .stat {

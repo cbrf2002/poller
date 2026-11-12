@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { ProfileField, Question } from '../shared/model';
-import { buildResults } from '../shared/results';
+import { buildResults, tallyChanges } from '../shared/results';
 import {
   comparableValue,
   normalizeSetContent,
@@ -164,7 +164,7 @@ describe('validateAnswers', () => {
     );
   });
 
-  test('ratings must be 1 to 5', () => {
+  test('ratings default to 1 to 5', () => {
     expect(validateAnswers([rating], { q2: '6' }).errors.q2).toBeTruthy();
     expect(validateAnswers([rating], { q2: '5' }).answers).toEqual([
       { questionId: 'q2', optionIds: ['5'], text: '' },
@@ -175,6 +175,50 @@ describe('validateAnswers', () => {
     const result = validateAnswers([single, rating], {});
     expect(result.answers).toEqual([]);
     expect(result.errors).toEqual({ q1: 'Pick an answer.' });
+  });
+
+  test('a rating takes only the points its scale has', () => {
+    const ten = { ...rating, scale: 10 };
+    expect(validateAnswers([ten], { q2: '10' }).errors).toEqual({});
+    expect(validateAnswers([ten], { q2: '11' }).errors.q2).toBeTruthy();
+    const three = { ...rating, scale: 3 };
+    expect(validateAnswers([three], { q2: '4' }).errors.q2).toBeTruthy();
+  });
+
+  test('“Other” needs its write-in, and is refused where it is not offered', () => {
+    const open = { ...single, allowOther: true };
+    expect(validateAnswers([open], { q1: 'other' }).errors.q1).toMatch(
+      /next to “Other”/
+    );
+    expect(
+      validateAnswers([open], { q1: 'other', 'q1-other': ' Ramen ' }).answers
+    ).toEqual([{ questionId: 'q1', optionIds: ['other'], text: 'Ramen' }]);
+    expect(
+      validateAnswers([single], { q1: 'other', 'q1-other': 'Ramen' }).errors.q1
+    ).toMatch(/no longer available/);
+  });
+
+  test('a yes-or-no question takes only yes or no', () => {
+    const yesno: Question = { ...single, type: 'yesno', options: [] };
+    expect(validateAnswers([yesno], { q1: 'yes' }).answers).toHaveLength(1);
+    expect(validateAnswers([yesno], { q1: 'a' }).errors.q1).toBeTruthy();
+  });
+
+  test('a ranking must place every choice exactly once', () => {
+    const ranking: Question = {
+      ...single,
+      type: 'ranking',
+      options: [...single.options, { id: 'c', label: 'C' }],
+    };
+    expect(validateAnswers([ranking], { q1: ['c', 'a', 'b'] }).answers).toEqual(
+      [{ questionId: 'q1', optionIds: ['c', 'a', 'b'], text: '', ranked: true }]
+    );
+    expect(
+      validateAnswers([ranking], { q1: ['c', 'a'] }).errors.q1
+    ).toBeTruthy();
+    expect(
+      validateAnswers([ranking], { q1: ['c', 'a', 'a'] }).errors.q1
+    ).toBeTruthy();
   });
 });
 
@@ -219,6 +263,65 @@ describe('buildResults', () => {
     );
     expect(result!.average).toBe(4);
     expect(result!.choices).toHaveLength(5);
+  });
+
+  test('a ranking scores choices by their average place', () => {
+    const question: Question = {
+      id: 'k',
+      prompt: 'Order',
+      type: 'ranking',
+      required: true,
+      options: [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C' },
+      ],
+    };
+    const answers = [
+      ['a', 'b', 'c'],
+      ['a', 'c', 'b'],
+    ].map(order => ({
+      questionId: 'k',
+      optionIds: order,
+      text: '',
+      ranked: true,
+    }));
+    const tallies = new Map<string, number>();
+    for (const answer of answers)
+      for (const { optionId, amount } of tallyChanges(answer))
+        tallies.set(optionId, (tallies.get(optionId) ?? 0) + amount);
+    const [result] = buildResults(
+      [question],
+      [...tallies]
+        .filter(([id]) => id !== '*')
+        .map(([optionId, count]) => ({ questionId: 'k', optionId, count })),
+      { k: tallies.get('*') ?? 0 }
+    );
+    expect(result!.choices.map(c => [c.figure, c.percent])).toEqual([
+      ['#1', 100],
+      ['#2.5', 25],
+      ['#2.5', 25],
+    ]);
+  });
+
+  test('an “Other” choice is counted with the written ones', () => {
+    const question: Question = {
+      id: 'q',
+      prompt: 'Lunch',
+      type: 'single',
+      required: true,
+      options: [{ id: 'x', label: 'X' }],
+      allowOther: true,
+    };
+    const [result] = buildResults(
+      [question],
+      [{ questionId: 'q', optionId: 'other', count: 1 }],
+      { q: 1 }
+    );
+    expect(result!.choices.map(c => [c.label, c.percent])).toEqual([
+      ['X', 0],
+      ['Other', 100],
+    ]);
   });
 });
 

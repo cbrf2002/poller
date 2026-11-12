@@ -13,7 +13,11 @@ import {
 } from './controllers/admin.controller';
 import { PublicController } from './controllers/public.controller';
 import { ErrorFilter } from './http/error-filter';
-import { sameOriginOnly, securityHeaders } from './http/security';
+import {
+  movedFromAdmin,
+  sameOriginOnly,
+  securityHeaders,
+} from './http/security';
 
 @Module({})
 class AppModule {
@@ -52,6 +56,7 @@ export async function createApp(
   app.disable('x-powered-by');
   app.set('etag', false);
   app.use(securityHeaders);
+  app.use(movedFromAdmin);
   app.use(sameOriginOnly);
   app.use(
     express.urlencoded({ extended: false, limit: '64kb', parameterLimit: 400 })

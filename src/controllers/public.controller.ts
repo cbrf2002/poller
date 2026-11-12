@@ -14,7 +14,7 @@ import { Backend, BackendError, type PublicSet } from '../backend/backend';
 import { APP_CONFIG, type AppConfig } from '../config';
 import { randomToken, sha256 } from '../crypto';
 import { cookieName, readCookie, serializeCookie } from '../http/cookies';
-import { bodyString, prefixedInput } from '../http/forms';
+import { answerInput, bodyString, prefixedInput } from '../http/forms';
 import { allowChallengeOrigin, clientIp } from '../http/security';
 import { TURNSTILE_ORIGIN, verifyTurnstile } from '../turnstile';
 import { sendPage } from '../http/respond';
@@ -199,7 +199,7 @@ export class PublicController {
     if (!set) return goneMessage(res);
     const hash = await this.tokenHash(req, slug);
     if (!hash) return res.redirect(303, `/p/${slug}`);
-    const answers = prefixedInput(req.body, 'q.');
+    const answers = answerInput(req.body);
 
     try {
       await this.backend.submit(slug, hash, answers);

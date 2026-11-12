@@ -1,4 +1,4 @@
-import { buildResults, type Tally } from '../shared/results';
+import { buildResults, tallyChanges, type Tally } from '../shared/results';
 import { fingerprint } from '../shared/hash';
 import type { Answer, SetContent, SetStatus } from '../shared/model';
 import { validateAnswers, validateProfile } from '../shared/validate';
@@ -128,13 +128,17 @@ export class MemoryBackend extends Backend {
     );
     for (const p of submitted) {
       for (const a of p.answers!) {
-        answeredBy[a.questionId] = (answeredBy[a.questionId] ?? 0) + 1;
-        for (const optionId of a.optionIds) {
+        for (const { optionId, amount } of tallyChanges(a)) {
+          if (optionId === '*') {
+            answeredBy[a.questionId] = (answeredBy[a.questionId] ?? 0) + 1;
+            continue;
+          }
           const t = tallies.find(
             x => x.questionId === a.questionId && x.optionId === optionId
           );
-          if (t) t.count++;
-          else tallies.push({ questionId: a.questionId, optionId, count: 1 });
+          if (t) t.count += amount;
+          else
+            tallies.push({ questionId: a.questionId, optionId, count: amount });
         }
       }
     }

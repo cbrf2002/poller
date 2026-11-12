@@ -23,6 +23,10 @@ export const question = v.object({
   type: literals(QUESTION_TYPES),
   required: v.boolean(),
   options: v.array(v.object({ id: v.string(), label: v.string() })),
+  allowOther: v.optional(v.boolean()),
+  scale: v.optional(v.number()),
+  lowLabel: v.optional(v.string()),
+  highLabel: v.optional(v.string()),
 });
 
 export const setContent = v.object({
@@ -36,6 +40,7 @@ export const answer = v.object({
   questionId: v.string(),
   optionIds: v.array(v.string()),
   text: v.string(),
+  ranked: v.optional(v.boolean()),
 });
 
 /** Raw form input keyed by field or question id. */

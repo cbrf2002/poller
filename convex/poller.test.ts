@@ -503,6 +503,71 @@ describe('repeat protection', () => {
     });
   });
 
+  test('removing a ranking takes back its places, not just its count', async () => {
+    const t = setup();
+    const { admin, setId, slug } = await publishedSet(t);
+    await t.mutation(api.sets.save, {
+      secret,
+      ...admin,
+      setId,
+      content: {
+        ...content,
+        fields: [],
+        questions: [
+          {
+            id: 'order',
+            prompt: 'Rank these',
+            type: 'ranking',
+            required: true,
+            options: [
+              { id: 'pizza', label: 'Pizza' },
+              { id: 'sushi', label: 'Sushi' },
+            ],
+          },
+        ],
+      },
+    });
+    for (const [tokenHash, order] of [
+      ['a', ['pizza', 'sushi']],
+      ['b', ['sushi', 'pizza']],
+    ] as const) {
+      await t.mutation(api.participation.enter, {
+        secret,
+        slug,
+        tokenHash,
+        ipKey: 'ip',
+        input: {},
+      });
+      await t.mutation(api.participation.submit, {
+        secret,
+        slug,
+        tokenHash,
+        input: { order: [...order] },
+      });
+    }
+    const people = await t.query(api.sets.respondentsPage, {
+      secret,
+      ...admin,
+      setId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    const first = people.page.find(
+      p => p.answers[0]?.optionIds[0] === 'sushi'
+    )!;
+    await t.mutation(api.sets.removeRespondent, {
+      secret,
+      ...admin,
+      setId,
+      respondentId: first.id,
+    });
+
+    const after = await t.query(api.sets.results, { secret, ...admin, setId });
+    expect(after.results[0]?.choices.map(c => [c.id, c.figure])).toEqual([
+      ['pizza', '#1'],
+      ['sushi', '#2'],
+    ]);
+  });
+
   test('a response from another set cannot be removed through this one', async () => {
     const t = setup();
     const { admin, slug } = await publishedSet(t);

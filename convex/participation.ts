@@ -1,7 +1,7 @@
 import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 import { ConvexError, v } from 'convex/values';
 import { fingerprint } from '../shared/hash';
-import { buildResults } from '../shared/results';
+import { buildResults, tallyChanges } from '../shared/results';
 import {
   comparableValue,
   repeatedValueError,
@@ -67,7 +67,8 @@ async function bumpTally(
   ctx: MutationCtx,
   setId: Id<'sets'>,
   questionId: string,
-  optionId: string
+  optionId: string,
+  amount: number
 ) {
   const row = await ctx.db
     .query('tallies')
@@ -75,9 +76,15 @@ async function bumpTally(
       q.eq('setId', setId).eq('questionId', questionId).eq('optionId', optionId)
     )
     .unique();
-  if (row) await ctx.db.patch('tallies', row._id, { count: row.count + 1 });
+  if (row)
+    await ctx.db.patch('tallies', row._id, { count: row.count + amount });
   else
-    await ctx.db.insert('tallies', { setId, questionId, optionId, count: 1 });
+    await ctx.db.insert('tallies', {
+      setId,
+      questionId,
+      optionId,
+      count: amount,
+    });
 }
 
 /** The live set behind a public link, or null while it's a draft or gone. */
@@ -191,9 +198,8 @@ export const submit = serverMutation({
     });
     await ctx.db.patch('respondents', respondent._id, { submittedAt });
     for (const answer of answers) {
-      await bumpTally(ctx, set._id, answer.questionId, '*');
-      for (const optionId of answer.optionIds) {
-        await bumpTally(ctx, set._id, answer.questionId, optionId);
+      for (const { optionId, amount } of tallyChanges(answer)) {
+        await bumpTally(ctx, set._id, answer.questionId, optionId, amount);
       }
     }
     await bumpStats(ctx, set._id, 'submitted');
