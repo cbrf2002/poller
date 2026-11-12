@@ -7,6 +7,7 @@ import {
   type Choice,
   type Question,
   type QuestionType,
+  type Section,
 } from './model';
 
 /** Stored vote count for one choice (or rating value) of one question. */
@@ -63,6 +64,8 @@ export interface QuestionResult {
   average: number | null;
   /** Highest rating point, for rating questions. */
   scale: number | null;
+  /** The section this question opens, if any. */
+  section?: Section;
 }
 
 function oneDecimal(n: number): number {
@@ -145,6 +148,7 @@ export function buildResults(
         question.type === 'rating'
           ? (question.scale ?? RATING_SCALE.default)
           : null,
+      ...(question.section ? { section: question.section } : {}),
     };
   });
 }

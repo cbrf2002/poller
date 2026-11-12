@@ -24,6 +24,8 @@ export const question = v.object({
   required: v.boolean(),
   options: v.array(v.object({ id: v.string(), label: v.string() })),
   allowOther: v.optional(v.boolean()),
+  maxPicks: v.optional(v.number()),
+  section: v.optional(v.object({ title: v.string(), note: v.string() })),
   scale: v.optional(v.number()),
   lowLabel: v.optional(v.string()),
   highLabel: v.optional(v.string()),

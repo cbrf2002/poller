@@ -5,6 +5,7 @@ import {
   ratingValues,
   type ProfileField,
   type Question,
+  type Section,
 } from '../../shared/model';
 import {
   countLabel,
@@ -124,12 +125,23 @@ ${value}</textarea>`;
   </div>`;
 }
 
+/** The heading and note that open a section of questions. */
+function sectionHeading(section: Section | undefined): SafeHtml | '' {
+  if (!section?.title) return '';
+  return html`<div class="q-section">
+    <h2 class="q-section-title">${section.title}</h2>
+    ${section.note ? html`<p class="q-section-note">${section.note}</p>` : ''}
+  </div>`;
+}
+
 function hint(question: Question): string {
   switch (question.type) {
     case 'single':
       return 'Pick one';
     case 'multiple':
-      return 'Pick any that apply';
+      return question.maxPicks
+        ? `Pick up to ${question.maxPicks}`
+        : 'Pick any that apply';
     case 'yesno':
       return 'Yes or no';
     case 'rating':
@@ -247,6 +259,7 @@ ${given(values, question.id)}</textarea>`;
       class="choices"
       role="${type === 'radio' ? 'radiogroup' : 'group'}"
       aria-labelledby="${headingId}"
+      ${question.maxPicks ? html`data-max-picks="${question.maxPicks}"` : ''}
     >
       ${question.options.map(
         option =>
@@ -287,7 +300,10 @@ ${given(values, question.id)}</textarea>`;
     </div>`;
   }
 
-  return html`<section class="win" aria-labelledby="${headingId}">
+  return html`${sectionHeading(question.section)}<section
+      class="win"
+      aria-labelledby="${headingId}"
+    >
     <div class="win-bar">
       <span class="dot"></span><span class="dot"></span
       ><span class="dot"></span>
@@ -348,7 +364,7 @@ export function resultCard(
           )}
         </div>`;
 
-  return html`<section
+  return html`${sectionHeading(result.section)}<section
     class="win"
     data-question="${result.id}"
     aria-labelledby="r-${result.id}"

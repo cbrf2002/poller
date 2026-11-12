@@ -101,6 +101,12 @@ export interface Choice {
   label: string;
 }
 
+/** A heading that groups the questions after it, up to the next one. */
+export interface Section {
+  title: string;
+  note: string;
+}
+
 export interface Question {
   id: string;
   prompt: string;
@@ -110,6 +116,10 @@ export interface Question {
   options: Choice[];
   /** `single`/`multiple`: adds an "Other" choice with a write-in. */
   allowOther?: boolean;
+  /** `multiple`: most choices one person may pick. Missing means no cap. */
+  maxPicks?: number;
+  /** Starts a new section at this question, with an optional note. */
+  section?: Section;
   /** `rating`: highest point, 2–10. Missing means 5 (older sets). */
   scale?: number;
   /** `rating`: words under the lowest and highest points. */
@@ -155,6 +165,7 @@ export const LIMITS = {
   fieldValue: 500,
   textAnswer: 1000,
   otherAnswer: 200,
+  sectionNote: 600,
   scaleLabel: 40,
 } as const;
 

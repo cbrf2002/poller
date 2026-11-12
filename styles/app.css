@@ -873,6 +873,38 @@
     flex-direction: column;
     gap: 22px;
   }
+  /* A section break: a ruled title over its questions, set apart by more
+     space above than below. */
+  .q-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 26px;
+    padding-top: 22px;
+    border-top: 1px solid var(--grid500);
+  }
+  .q-section:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .q-section-title {
+    font: 750 clamp(24px, 2.6vw, 32px) / 1.15 var(--font-display);
+    letter-spacing: -0.03em;
+    color: var(--text-loud);
+    text-wrap: balance;
+    animation: press-up 0.7s var(--ease-out) both;
+  }
+  .q-section-note {
+    max-width: 65ch;
+    color: var(--text-muted);
+    white-space: pre-line;
+  }
+  /* A box resting at a pick limit. */
+  .choice.resting {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   .q-num {
     font: 500 12px var(--font-mono);
     color: var(--ink-accent);
@@ -1062,6 +1094,14 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
+  }
+  /* Section fields sit above the question they open. */
+  .section-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 18px;
+    border-bottom: 1px dashed var(--grid700);
   }
   .toggles {
     display: flex;
@@ -1338,6 +1378,7 @@
     :root[data-stamp] .wordmark-word,
     .display-1,
     .display-1 .serif,
+    .q-section-title,
     .bar rect,
     .bar-row.bumped [data-percent],
     .notice {

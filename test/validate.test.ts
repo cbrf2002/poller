@@ -57,6 +57,48 @@ describe('normalizeSetContent', () => {
   });
 });
 
+describe('pick caps and sections', () => {
+  const multiple = (extra: Record<string, unknown>) =>
+    normalizeSetContent({
+      questions: [
+        {
+          id: 'q1',
+          type: 'multiple',
+          options: [
+            { id: 'a', label: 'A' },
+            { id: 'b', label: 'B' },
+            { id: 'c', label: 'C' },
+          ],
+          ...extra,
+        },
+      ],
+    }).questions[0]!;
+
+  test('a cap that allows every choice is no cap', () => {
+    expect(multiple({ maxPicks: 2 }).maxPicks).toBe(2);
+    expect(multiple({ maxPicks: 3 }).maxPicks).toBeUndefined();
+    expect(multiple({ maxPicks: 0 }).maxPicks).toBeUndefined();
+    expect(multiple({ maxPicks: 3, allowOther: true }).maxPicks).toBe(3);
+  });
+
+  test('a section needs a title before the set can go public', () => {
+    const content = normalizeSetContent({
+      title: 'Offsite',
+      questions: [
+        {
+          id: 'q1',
+          prompt: 'Coming?',
+          type: 'yesno',
+          section: { title: '', note: 'About travel' },
+        },
+      ],
+    });
+    expect(publishProblems(content)).toEqual([
+      'The section before question 1 needs a title.',
+    ]);
+  });
+});
+
 describe('publishProblems', () => {
   test('lists what blocks publishing', () => {
     const problems = publishProblems(
@@ -196,6 +238,19 @@ describe('validateAnswers', () => {
     expect(
       validateAnswers([single], { q1: 'other', 'q1-other': 'Ramen' }).errors.q1
     ).toMatch(/no longer available/);
+  });
+
+  test('a several-choice question with a cap refuses picks past it', () => {
+    const capped: Question = {
+      ...single,
+      type: 'multiple',
+      options: [...single.options, { id: 'c', label: 'C' }],
+      maxPicks: 2,
+    };
+    expect(validateAnswers([capped], { q1: ['a', 'b'] }).errors).toEqual({});
+    expect(validateAnswers([capped], { q1: ['a', 'b', 'c'] }).errors.q1).toBe(
+      'Pick up to 2.'
+    );
   });
 
   test('a yes-or-no question takes only yes or no', () => {

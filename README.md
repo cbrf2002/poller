@@ -13,7 +13,9 @@ with the code, answer, and then watch the results come in live.
 - Poll sets with one-choice, several-choice, yes-or-no, rating, ranking and
   written-answer questions. Choice questions can add an "Other" with a
   write-in; ratings run from 1 to anywhere between 2 and 10 (5 by default),
-  with your own words for each end.
+  with your own words for each end. Several-choice questions can cap how
+  many picks one person makes.
+- Group questions into sections, each with a title and an optional note.
 - Choose the details to collect before people answer: name, email, phone,
   birthday, number, dropdown, checkbox or any custom text, each optional or
   required.

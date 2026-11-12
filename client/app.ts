@@ -344,3 +344,24 @@ for (const text of document.querySelectorAll<HTMLInputElement>(
     if (pick && text.value.trim()) pick.checked = true;
   });
 }
+
+// ── Pick limits ───────────────────────────────────────────────
+// Once a question's cap is reached, the unpicked boxes rest until one is
+// cleared. The server enforces the same cap.
+for (const group of document.querySelectorAll<HTMLElement>(
+  '[data-max-picks]'
+)) {
+  const max = Number(group.dataset.maxPicks);
+  const boxes = [
+    ...group.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+  ];
+  const sync = () => {
+    const full = boxes.filter(b => b.checked).length >= max;
+    for (const box of boxes) {
+      box.disabled = full && !box.checked;
+      box.closest('.choice')?.classList.toggle('resting', box.disabled);
+    }
+  };
+  group.addEventListener('change', sync);
+  sync();
+}

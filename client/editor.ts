@@ -552,10 +552,84 @@ function startEditor(set: SetData, root: HTMLElement): void {
     );
   }
 
+  function sectionFields(question: Question): HTMLElement | null {
+    const section = question.section;
+    if (!section) return null;
+    const noteId = `in-${newItemId()}`;
+    return h(
+      'div',
+      { class: 'section-fields' },
+      textInput(
+        'Section title',
+        section.title,
+        LIMITS.label,
+        v => (section.title = v),
+        { placeholder: 'e.g. About the venue' }
+      ),
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { class: 'field-label', for: noteId }, 'Section note'),
+        h(
+          'textarea',
+          {
+            class: 'textarea',
+            id: noteId,
+            rows: 2,
+            maxlength: LIMITS.sectionNote,
+            placeholder: 'Optional. A line of context for these questions.',
+            oninput: (e: Event) => {
+              section.note = (e.target as HTMLTextAreaElement).value;
+              scheduleSave();
+            },
+          },
+          section.note
+        )
+      )
+    );
+  }
+
+  function maxPicksPicker(question: Question): HTMLElement {
+    const id = `in-${newItemId()}`;
+    const choices = question.options.length + (question.allowOther ? 1 : 0);
+    const limits: number[] = [];
+    for (let n = 1; n < choices; n++) limits.push(n);
+    // Removing choices can leave a cap that now allows them all.
+    if (question.maxPicks && question.maxPicks >= choices)
+      delete question.maxPicks;
+    return h(
+      'div',
+      { class: 'field' },
+      h('label', { class: 'field-label', for: id }, 'Most picks'),
+      h(
+        'select',
+        {
+          class: 'select',
+          id,
+          onchange: (e: Event) => {
+            const value = Number((e.target as HTMLSelectElement).value);
+            if (value) question.maxPicks = value;
+            else delete question.maxPicks;
+            scheduleSave(200);
+          },
+        },
+        h('option', { value: '0', selected: !question.maxPicks }, 'No limit'),
+        limits.map(n =>
+          h(
+            'option',
+            { value: String(n), selected: n === question.maxPicks },
+            n === 1 ? 'Up to 1' : `Up to ${n}`
+          )
+        )
+      )
+    );
+  }
+
   function questionCard(question: Question, index: number): HTMLElement {
     return card(
       `Question ${String(index + 1).padStart(2, '0')}`,
       itemTools(content.questions, index, 'question'),
+      sectionFields(question),
       h(
         'div',
         { class: 'row-2' },
@@ -587,6 +661,7 @@ function startEditor(set: SetData, root: HTMLElement): void {
         )
       ),
       CHOICE_TYPES.includes(question.type) ? choiceRows(question) : null,
+      question.type === 'multiple' ? maxPicksPicker(question) : null,
       question.type === 'rating' ? ratingControls(question) : null,
       h(
         'div',
@@ -595,7 +670,10 @@ function startEditor(set: SetData, root: HTMLElement): void {
           ? checkToggle(
               'Add “Other” with a write-in',
               question.allowOther === true,
-              v => (question.allowOther = v)
+              v => {
+                question.allowOther = v;
+                render();
+              }
             )
           : null,
         // Every ranking arrives in some order, so it is always answered.
@@ -605,7 +683,12 @@ function startEditor(set: SetData, root: HTMLElement): void {
               'Required',
               question.required,
               v => (question.required = v)
-            )
+            ),
+        checkToggle('Start a section here', !!question.section, v => {
+          if (v) question.section = { title: '', note: '' };
+          else delete question.section;
+          render();
+        })
       )
     );
   }

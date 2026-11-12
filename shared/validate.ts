@@ -110,6 +110,20 @@ export function normalizeSetContent(input: unknown): SetContent {
       };
       if (OTHER_TYPES.includes(type) && q.allowOther === true)
         question.allowOther = true;
+      if (type === 'multiple' && q.maxPicks !== undefined) {
+        // Kept within 1..(choices + "Other"); a cap that allows every choice
+        // is no cap, so it is dropped.
+        const choices = options.length + (question.allowOther ? 1 : 0);
+        const max = Math.round(Number(q.maxPicks));
+        if (Number.isFinite(max) && max >= 1 && max < choices)
+          question.maxPicks = max;
+      }
+      if (isRecord(q.section)) {
+        question.section = {
+          title: cleanText(q.section.title, LIMITS.label),
+          note: cleanText(q.section.note, LIMITS.sectionNote),
+        };
+      }
       if (type === 'rating') {
         const scale = Math.round(Number(q.scale));
         question.scale = Number.isFinite(scale)
@@ -144,6 +158,8 @@ export function publishProblems(content: SetContent): string[] {
   });
   content.questions.forEach((question, i) => {
     const name = question.prompt || `Question ${i + 1}`;
+    if (question.section && !question.section.title)
+      problems.push(`The section before question ${i + 1} needs a title.`);
     if (!question.prompt) problems.push(`Question ${i + 1} needs a prompt.`);
     if (CHOICE_TYPES.includes(question.type)) {
       const labelled = question.options.filter(o => o.label);
@@ -318,6 +334,10 @@ export function validateAnswers(
       }
       if (question.type !== 'multiple' && picked.length > 1) {
         errors[question.id] = 'Pick only one.';
+        continue;
+      }
+      if (question.maxPicks && picked.length > question.maxPicks) {
+        errors[question.id] = `Pick up to ${question.maxPicks}.`;
         continue;
       }
       let text = '';
