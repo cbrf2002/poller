@@ -97,7 +97,7 @@ export function page(options: PageOptions): SafeHtml {
         <main class="frame" id="main">${options.body}</main>
         <footer class="frame rule crop">
           <div class="site-footer">
-            <span>Poller</span>
+            <span>Made by cbrf2002</span>
             ${options.admin ? html`<span>${options.admin.email}</span>` : html`<a href="/creator">Creator sign-in</a>`}
           </div>
         </footer>
