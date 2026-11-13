@@ -46,7 +46,7 @@ export function loginPage(error = '', email = ''): SafeHtml {
         >
           <div class="win-bar">
             <span class="dot"></span><span class="dot"></span
-            ><span class="dot"></span><span class="path">poller / admin</span>
+            ><span class="dot"></span><span class="path">poller</span>
           </div>
           <div class="win-body form-stack">
             ${error ? errorSummary(error) : ''}
