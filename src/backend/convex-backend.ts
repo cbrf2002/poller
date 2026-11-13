@@ -50,7 +50,9 @@ export class ConvexBackend extends Backend {
       ...args,
       secret: this.config.serverSecret,
     } as FunctionArgs<F>;
-    return this.call(() => this.client.mutation(fn, full));
+    // The client is shared across Worker requests. Its default queue would
+    // run another request's I/O in the first request's context.
+    return this.call(() => this.client.mutation(fn, full, { skipQueue: true }));
   }
 
   private admin(session: string) {
