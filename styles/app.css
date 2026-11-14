@@ -1002,7 +1002,10 @@
   }
 
   /* ── Tables ────────────────────────────────────────────────── */
+  /* Positioned so absolutely placed children (the screen-reader labels in
+     the Remove buttons) are clipped here instead of stretching the page. */
   .table-wrap {
+    position: relative;
     overflow-x: auto;
     border: 1px solid var(--grid500);
     background: var(--surface);
