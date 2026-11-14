@@ -1037,6 +1037,39 @@
   .table tr:last-child td {
     border-bottom: 0;
   }
+  .table td:has(.clamp) {
+    min-width: 220px;
+  }
+  /* Long answers: four lines, then a toggle. Only once scripts have loaded,
+     since the toggle needs them. */
+  .clamp-text {
+    white-space: pre-line;
+  }
+  .clamp-toggle {
+    display: none;
+    margin-top: 6px;
+    padding: 0;
+    font: 500 11px var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  :root[data-js] .clamp-toggle {
+    display: inline-block;
+  }
+  :root[data-js] .clamp.fits .clamp-toggle {
+    display: none;
+  }
+  :root[data-js] .clamp:not(.open) .clamp-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+  }
 
   /* ── Editor ────────────────────────────────────────────────── */
   .editor-bar {

@@ -125,6 +125,30 @@ ${value}</textarea>`;
   </div>`;
 }
 
+/**
+ * Longer than this (or this many lines) and a table cell is clamped; the
+ * browser then drops the toggle for cells whose text turns out to fit.
+ */
+const CLAMP_CHARS = 60;
+const CLAMP_LINES = 3;
+
+/**
+ * Cell text for the creator's respondent table. Long written answers are
+ * cut to a few lines with a "Show more" toggle (see `client/app.ts`), so
+ * one essay doesn't make its whole row a screen tall. Without scripts the
+ * text simply shows in full.
+ */
+export function clampedText(text: string): SafeHtml {
+  const lines = text.split(/\r?\n/).length;
+  if (text.length <= CLAMP_CHARS && lines <= CLAMP_LINES) return html`${text}`;
+  return html`<div class="clamp" data-clamp>
+    <p class="clamp-text">${text}</p>
+    <button type="button" class="clamp-toggle" aria-expanded="false">
+      Show more
+    </button>
+  </div>`;
+}
+
 /** The heading and note that open a section of questions. */
 function sectionHeading(section: Section | undefined): SafeHtml | '' {
   if (!section?.title) return '';

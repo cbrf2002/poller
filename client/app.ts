@@ -365,3 +365,25 @@ for (const group of document.querySelectorAll<HTMLElement>(
   group.addEventListener('change', sync);
   sync();
 }
+
+// ── Clamped table cells ───────────────────────────────────────
+// Which cells really overflow depends on column width and font, so measure:
+// a cell whose text fits in its four lines loses the toggle.
+function markFits(): void {
+  for (const cell of document.querySelectorAll<HTMLElement>('[data-clamp]')) {
+    const text = cell.querySelector<HTMLElement>('.clamp-text');
+    if (!text || cell.classList.contains('open')) continue;
+    cell.classList.toggle('fits', text.scrollHeight <= text.clientHeight + 1);
+  }
+}
+markFits();
+void document.fonts?.ready.then(markFits);
+
+for (const cell of document.querySelectorAll<HTMLElement>('[data-clamp]')) {
+  const toggle = cell.querySelector<HTMLButtonElement>('.clamp-toggle');
+  toggle?.addEventListener('click', () => {
+    const open = cell.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = open ? 'Show less' : 'Show more';
+  });
+}

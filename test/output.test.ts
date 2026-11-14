@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { csvRow } from '../src/csv';
 import { prefixedInput } from '../src/http/forms';
 import { html, jsonBlock } from '../src/views/html';
+import { clampedText } from '../src/views/parts';
 
 describe('html', () => {
   test('escapes interpolated text, including attribute breakouts', () => {
@@ -19,6 +20,22 @@ describe('html', () => {
     expect(
       jsonBlock('d', { t: '</script><script>x()</script>' }).value
     ).not.toContain('</script><');
+  });
+});
+
+describe('clampedText', () => {
+  test('short answers stay plain, long or many-line ones get a toggle', () => {
+    expect(clampedText('Ramen').value).toBe('Ramen');
+    expect(clampedText('x'.repeat(61)).value).toContain('data-clamp');
+    expect(clampedText(['a', 'b', 'c', 'd'].join('\n')).value).toContain(
+      'data-clamp'
+    );
+  });
+
+  test('a long answer is escaped inside the clamp', () => {
+    const out = clampedText(`<img src=x onerror=alert(1)>${'y'.repeat(200)}`);
+    expect(out.value).not.toContain('<img');
+    expect(out.value).toContain('&lt;img');
   });
 });
 

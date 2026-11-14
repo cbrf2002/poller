@@ -1,6 +1,9 @@
 // Runs in <head> before first paint, so nothing flashes in the wrong colours.
 const root = document.documentElement;
 
+// Styles that only make sense with scripts (clamped text) wait on this.
+root.dataset.js = '';
+
 // Saved theme; dark by default.
 try {
   const saved = localStorage.getItem('poller-theme');

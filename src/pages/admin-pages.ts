@@ -9,7 +9,7 @@ import { answerSummary } from '../../shared/results';
 import { html, jsonBlock, type SafeHtml } from '../views/html';
 import { icon } from '../views/icons';
 import { page } from '../views/layout';
-import { errorSummary, resultCard } from '../views/parts';
+import { clampedText, errorSummary, resultCard } from '../views/parts';
 
 type Admin = { email: string };
 
@@ -353,11 +353,11 @@ export function adminResultsPage(
                           <td class="whitespace-nowrap">
                             ${when(r.enteredAt)}${r.submittedAt === null ? html`<br /><span class="mono-label">not submitted</span>` : ''}
                           </td>
-                          ${data.fields.map(f => html`<td>${profileCell(f, r.profile[f.id])}</td>`)}
+                          ${data.fields.map(f => html`<td>${clampedText(profileCell(f, r.profile[f.id]))}</td>`)}
                           ${data.questions.map(q => {
                             const a = answers.get(q.id);
                             return html`<td>
-                              ${a ? answerSummary(q, a, ', ') : '—'}
+                              ${clampedText(a ? answerSummary(q, a, ', ') : '—')}
                             </td>`;
                           })}
                           <td class="!min-w-0">
